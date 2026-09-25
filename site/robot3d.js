@@ -1,11 +1,11 @@
-// Interactive full robot: XLeRobot (2x SO-101 arms, IKEA cart base, pan-tilt camera head), loaded from the
-// open-source model in Vector-Wangel/XLeRobot (Apache-2.0).
+// Interactive robot: the life-size InMoov humanoid (Gael Langevin's design) that robotai v1 is built on.
+// URDF from Sentience-Robotics/inmoov_urdf (GPL-3.0), xacro pre-expanded into /models/inmoov.urdf;
+// its ~290 Collada meshes stream from that repo.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js";
 import URDFLoader from "urdf-loader";
 
-const URDF = "https://raw.githubusercontent.com/Vector-Wangel/XLeRobot/main/simulation/Maniskill/assets/xlerobot/xlerobot.urdf";
+const URDF = "/models/inmoov.urdf";
 const el = document.getElementById("arm3d");
 const status = document.getElementById("arm3d-status");
 
@@ -27,47 +27,65 @@ const sun = new THREE.DirectionalLight(0xffffff, 2.2);
 sun.position.set(1, 2, 1.5);
 scene.add(sun);
 
-const printed = new THREE.MeshStandardMaterial({ color: css("--accent") || "#2f5bea", roughness: 0.55 });
-const servo = new THREE.MeshStandardMaterial({ color: "#23262d", roughness: 0.4, metalness: 0.2 });
-const cart = new THREE.MeshStandardMaterial({ color: "#c9ccd2", roughness: 0.7, metalness: 0.1 });
-const kind = (path) => (/motor|camera/i.test(path) ? servo : /raskog/i.test(path) ? cart : printed);
+const shell = new THREE.MeshStandardMaterial({ color: "#eef0f3", roughness: 0.5 });
+const dark = new THREE.MeshStandardMaterial({ color: "#2a2d34", roughness: 0.45 });
+const accent = new THREE.MeshStandardMaterial({ color: css("--accent") || "#2f5bea", roughness: 0.5 });
+// Keep the model's own light/dark split, re-shaded to the site palette; hands pick up the accent.
+const repaint = (o, inHand) => {
+  const c = o.material?.color;
+  const isDark = c && c.r + c.g + c.b < 0.9;
+  o.material = isDark ? dark : inHand ? accent : shell;
+};
 
 let robot = null;
 const manager = new THREE.LoadingManager();
 const loader = new URDFLoader(manager);
-loader.loadMeshCb = (path, manager, done) => {
-  if (!/\.stl$/i.test(path)) return done(new THREE.Group()); // tiny .ply jaw-tip colliders: skip
-  new STLLoader(manager).load(path, (geom) => {
-    const m = new THREE.Mesh(geom);
-    m.userData.mat = kind(path);
-    done(m);
-  }, undefined, (e) => done(null, e));
-};
+// Mesh URLs in the URDF are absolute, but urdf-loader prefixes its working path; undo that.
+loader.loadMeshCb = (path, mgr, done) => loader.defaultMeshLoader(path.slice(path.indexOf("https://")), mgr, done);
+manager.onProgress = (_, n, total) => { status.textContent = `Loading the robot… ${n}/${total} parts`; };
 loader.load(URDF, (r) => { robot = r; }, undefined, fail);
 
 // Meshes stream in after the URDF itself, so paint and frame once everything has arrived.
 manager.onLoad = () => {
   if (!robot) return;
+  // onLoad fires whenever the queue drains, not once; everything below is safe to repeat.
   robot.rotation.x = -Math.PI / 2; // URDF is Z-up
-  robot.traverse((o) => { if (o.isMesh && o.userData.mat) o.material = o.userData.mat; }); // override URDF colours
-  scene.add(robot);
+  robot.traverse((o) => {
+    if (!o.isMesh) return;
+    let p = o, inHand = false;
+    while (p && !inHand) { inHand = /Hand/.test(p.name || ""); p = p.parent; }
+    repaint(o, inHand);
+  });
+  if (!robot.parent) scene.add(robot);
   robot.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(robot);
   const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
-  controls.target.copy(c);
-  camera.position.copy(c).add(new THREE.Vector3(0.8, 0.25, 1).normalize().multiplyScalar(size * 1.7));
-  status.textContent = "The robot · two arms, camera head, mobile base · drag to rotate";
+  // Frame the upper body (head to hips); the pedestal below stands in for the hoverboard base.
+  const upper = new THREE.Vector3(c.x, box.max.y - 0.5, c.z);
+  controls.target.copy(upper);
+  camera.position.copy(upper).add(new THREE.Vector3(0.35, 0.1, 1).normalize().multiplyScalar(2.3));
+  status.textContent = "robotai v1 · life-size InMoov humanoid · drag to rotate";
 };
 manager.onError = fail;
 function fail() { status.textContent = "3D model couldn't load. Check your connection."; }
 
-// Idle "working" motion: both arms reach and grab out of phase, the head looks around, the base turns slowly.
-const arm = (t, k) => ({ Rotation: 0.35 * Math.sin(t * 0.5 + k), Pitch: -0.3 + 0.3 * Math.sin(t * 0.8 + k), Elbow: 0.4 + 0.35 * Math.sin(t * 0.8 + k + 1),
-  Wrist_Pitch: 0.4 * Math.sin(t * 0.9 + k + 2), Wrist_Roll: 0.6 * Math.sin(t * 0.6 + k), Jaw: 0.5 + 0.5 * Math.sin(t * 1.6 + k) });
+// Idle motion: arms reach and return out of phase, fingers curl, head looks around, torso twists slightly.
+const FINGERS = ["index", "index2", "index3", "majeure", "majeure2", "majeure3", "ringFinger", "ringfinger2", "ringfinger3", "pinky", "pinky2", "pinky3", "thumb", "thumb3"];
 const pose = (t) => {
-  const out = { head_pan_joint: 0.5 * Math.sin(t * 0.35), head_tilt_joint: 0.2 * Math.sin(t * 0.5), root_z_rotation_joint: 0.25 * Math.sin(t * 0.15) };
-  for (const [j, v] of Object.entries(arm(t, 0))) out[j] = v;
-  for (const [j, v] of Object.entries(arm(t, Math.PI))) out[j + "_2"] = v;
+  const out = {
+    "i01.head.rothead_link_joint": 0.45 * Math.sin(t * 0.4),
+    "i01.head.neck.001_link_joint": 0.12 * Math.sin(t * 0.55),
+    "i01.torso.midStom_link_joint": 0.12 * Math.sin(t * 0.3),
+  };
+  for (const [side, k] of [["left", 0], ["right", Math.PI]]) {
+    out[`${side}_shoulder_x_link_joint`] = 0.35 + 0.35 * Math.sin(t * 0.7 + k);
+    out[`${side}_shoulder_y_link_joint`] = 0.15 * Math.sin(t * 0.5 + k);
+    out[`${side}_elbow_x_link_joint`] = 0.6 + 0.4 * Math.sin(t * 0.7 + k + 0.8);
+    out[`${side}_wrist_z_link_joint`] = 0.5 * Math.sin(t * 0.6 + k);
+    const hand = side === "left" ? "leftHand" : "rightHand";
+    const curl = 0.5 + 0.5 * Math.sin(t * 1.2 + k);
+    for (const f of FINGERS) out[`i01.${hand}.${f}_link_joint`] = curl;
+  }
   return out;
 };
 
@@ -81,7 +99,12 @@ new ResizeObserver(resize).observe(el);
 
 const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 renderer.setAnimationLoop((ms) => {
-  if (robot && !still) for (const [j, v] of Object.entries(pose(ms / 1000))) robot.joints[j]?.setJointValue(v);
+  if (robot && !still) {
+    for (const [j, v] of Object.entries(pose(ms / 1000))) {
+      const joint = robot.joints[j];
+      if (joint) joint.setJointValue(THREE.MathUtils.clamp(v, joint.limit.lower, joint.limit.upper));
+    }
+  }
   controls.update();
   renderer.render(scene, camera);
 });

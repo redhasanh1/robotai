@@ -1,49 +1,135 @@
 {
   "start": "2026-09-28",
   "lanes": {
-    "hardware": { "name": "Hardware", "owner": "Mechanical" },
-    "software": { "name": "Physical AI", "owner": "Hasan" }
+    "hardware": {
+      "name": "Hardware",
+      "owner": "Mechanical"
+    },
+    "software": {
+      "name": "Physical AI",
+      "owner": "Hasan"
+    }
   },
   "steps": [
     {
       "weeks": "1-2",
-      "hardware": { "title": "Order + print", "text": "Parts ordered, hands and arm parts printing", "done": false, "image": "" },
-      "software": { "title": "Stack up", "text": "LeRobot, sim, measure Cerebras latency from Toronto", "done": false, "image": "" }
+      "hardware": {
+        "title": "Order + print",
+        "text": "Parts ordered; hands, forearms, torso printing",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Stack up",
+        "text": "LeRobot, sim, measure Cerebras latency from Toronto",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "3-4",
-      "hardware": { "title": "Hands", "text": "Both hands assembled: tendons, springs, servos", "done": false, "image": "" },
-      "software": { "title": "Hands move", "text": "ESP32 finger control + teleop", "done": false, "image": "" }
+      "hardware": {
+        "title": "Hands + forearms",
+        "text": "Both InMoov hands and forearms, like the photo",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Hands move",
+        "text": "ESP32 finger control + teleop",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "5-6",
-      "hardware": { "title": "Arms", "text": "Two SO-101 arms built and calibrated", "done": false, "image": "" },
-      "software": { "title": "Teleop + data", "text": "Drive the arms, record demos", "done": false, "image": "" }
+      "hardware": {
+        "title": "Torso + shoulders",
+        "text": "Life-size torso, shoulder and elbow joints",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Teleop + data",
+        "text": "Drive the arms, record demos",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "7-8",
-      "hardware": { "title": "Base", "text": "Cart, omni wheels, power, mounts", "done": false, "image": "" },
-      "software": { "title": "First autonomy", "text": "ACT policy does one task alone", "done": false, "image": "" }
+      "hardware": {
+        "title": "Wheeled base",
+        "text": "Hoverboard drive base, battery, e-stop",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "First autonomy",
+        "text": "ACT policy does one task; walking RL in sim",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "9-10",
-      "hardware": { "title": "Eyes", "text": "Head + wrist cameras, cable routing", "done": false, "image": "" },
-      "software": { "title": "Many skills", "text": "SmolVLA across several tasks", "done": false, "image": "" }
+      "hardware": {
+        "title": "Head + eyes",
+        "text": "Head, cameras, wiring; legs go/no-go at week 10",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Many skills",
+        "text": "SmolVLA across several tasks",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "11-12",
-      "hardware": { "title": "Grip", "text": "Soft TPU grippers, hand-on-arm test", "done": false, "image": "" },
-      "software": { "title": "Cerebras brain", "text": "Voice → plan → act → check, live", "done": false, "image": "" }
+      "hardware": {
+        "title": "Walker (if go)",
+        "text": "Small 0.62 m biped build, sharing the brain",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Cerebras brain",
+        "text": "Voice → plan → act → check, live",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "13-14",
-      "hardware": { "title": "Kitchen rig", "text": "Counter setup, fixtures, fixes", "done": false, "image": "" },
-      "software": { "title": "Cerebras unlock", "text": "30B verifier picks the best of 16 moves, 7-10x a second", "done": false, "image": "" }
+      "hardware": {
+        "title": "Kitchen rig",
+        "text": "Counter setup, fixtures, fixes",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Cerebras unlock",
+        "text": "30B verifier picks the best of 16 moves, 7-10x a second",
+        "done": false,
+        "image": ""
+      }
     },
     {
       "weeks": "15-16",
-      "hardware": { "title": "Polish", "text": "E-stop, safety, final build", "done": false, "image": "" },
-      "software": { "title": "Demo", "text": "Kitchen demo, video, write-up", "done": false, "image": "" }
+      "hardware": {
+        "title": "Polish",
+        "text": "Safety, final build, cable tidy",
+        "done": false,
+        "image": ""
+      },
+      "software": {
+        "title": "Demo",
+        "text": "Kitchen demo, video, write-up",
+        "done": false,
+        "image": ""
+      }
     }
   ]
 }
