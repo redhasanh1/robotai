@@ -1,0 +1,51 @@
+{
+  "note": "One humanoid arm, shoulder to fingertips. 'links' are InMoov URDF link names (right arm shown; the left is mirrored). Status: owned = already in the Amazon cart / bought, print = school printer, pending = final pick in Kimi round 3.",
+  "parts": [
+    {
+      "id": "shoulder",
+      "name": "Shoulder",
+      "joints": "pitch + roll",
+      "links": ["right_shoulder_y_link", "right_shoulder_x_link"],
+      "actuator": "2× 12V worm-gear motor with encoder (NFP 5840-31ZY class). Self-locking, so it holds the arm up without power.",
+      "made": "Printed PETG shoulder shell; AS5600 angle sensor + BTS7960 driver per joint",
+      "status": "pending"
+    },
+    {
+      "id": "upperarm",
+      "name": "Upper arm",
+      "joints": "rotation",
+      "links": ["right_shoulder_z_link"],
+      "actuator": "Bus servo (STS3215 class)",
+      "made": "Printed PETG bicep shell",
+      "status": "pending"
+    },
+    {
+      "id": "forearm",
+      "name": "Elbow + forearm",
+      "joints": "elbow bend",
+      "links": ["right_elbow_x_link"],
+      "actuator": "Elbow: 12V worm-gear motor (same class as the shoulder). Inside the forearm: 5× MG996R finger servos with printed tendon pulleys, 3-over-2 like the photo.",
+      "made": "Printed forearm shell; ESP32 + PCA9685 board and wiring live inside it",
+      "status": "owned"
+    },
+    {
+      "id": "wrist",
+      "name": "Wrist",
+      "joints": "rotation",
+      "links": ["right_wrist_z_link", "i01.rightHand.wrist.001_link"],
+      "actuator": "STS3215 bus servo (the orange ring in the photo)",
+      "made": "Printed wrist ring + bearing",
+      "status": "pending"
+    },
+    {
+      "id": "hand",
+      "name": "Hand",
+      "joints": "5 fingers, 14 knuckles",
+      "prefix": "i01.rightHand.",
+      "exclude": ["i01.rightHand.wrist.001_link"],
+      "actuator": "Pulled by 50 lb PE braid tendons from the forearm servos; springs open the fingers",
+      "made": "Printed InMoov fingers and palm, TPU grip pads on fingertips and palm",
+      "status": "owned"
+    }
+  ]
+}

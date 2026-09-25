@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>robotai</title>
+<title>The arm · robotai</title>
 <meta name="description" content="robotai: an open-source life-size AI humanoid built by students in Toronto.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,25 +24,15 @@
 </header>
 
 <main class="wrap">
-  <section class="hero">
-    <h1>A life-size humanoid that runs your home.</h1>
-    <p class="lede">A 3D-printed humanoid with five-finger hands that cooks, tidies and fetches, and one day walks the dog. It rolls on a wheeled base while its walking legs are trained in simulation. It learns chores from demonstrations, and a fast multimodal model on Cerebras does the thinking. Built by students in Toronto.</p>
-    <ul class="jobs" id="jobs"></ul>
+  <section class="page-head">
+    <h1>The arm</h1>
+    <p class="lede">Each arm is life-size, copied from the InMoov design: a printed shell, strong self-locking motors at the shoulder and elbow, five finger servos hidden in the forearm, and tendons that pull the fingers. Point at a part to light it up.</p>
   </section>
-
-  <section id="robot">
-    <div class="arm-stage tall" id="arm3d"><span class="arm-status" id="arm3d-status">Loading the robot…</span></div>
+  <section class="arm-layout">
+    <div class="arm-stage" id="arm3d" data-focus="arm"><span class="arm-status" id="arm3d-status">Loading the arm…</span></div>
+    <ol class="arm-parts" id="arm-parts"></ol>
   </section>
-
-  <section>
-    <div class="stats" id="stats"></div>
-    <div class="tiles">
-      <a class="tile" href="/arm"><b>The arm</b><span>Shoulder to fingertips, and what every part is made of</span></a>
-      <a class="tile" href="/plan"><b>Build plan</b><span>16 weeks, hardware and physical-AI lanes</span></a>
-      <a class="tile" href="/parts"><b>Parts</b><span>Every part with a checked price and link</span></a>
-      <a class="tile" href="/research"><b>Research</b><span>Why Cerebras speed changes what a robot can do</span></a>
-    </div>
-  </section>
+  <p class="muted legend"><span class="pill owned">owned</span> already bought · <span class="pill pending">pending</span> final pick in progress · everything else is printed at school</p>
 </main>
 
 <footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a></footer>

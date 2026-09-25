@@ -8,6 +8,7 @@ import URDFLoader from "urdf-loader";
 const URDF = "/models/inmoov.urdf";
 const el = document.getElementById("arm3d");
 const status = document.getElementById("arm3d-status");
+const ARM = el.dataset.focus === "arm"; // /arm page: close-up of the right arm with part highlighting
 
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -30,12 +31,17 @@ scene.add(sun);
 const shell = new THREE.MeshStandardMaterial({ color: "#eef0f3", roughness: 0.5 });
 const dark = new THREE.MeshStandardMaterial({ color: "#2a2d34", roughness: 0.45 });
 const accent = new THREE.MeshStandardMaterial({ color: css("--accent") || "#2f5bea", roughness: 0.5 });
-// Keep the model's own light/dark split, re-shaded to the site palette; hands pick up the accent.
+const glow = new THREE.MeshStandardMaterial({ color: css("--hw") || "#e07a2f", roughness: 0.4, emissive: css("--hw") || "#e07a2f", emissiveIntensity: 0.25 });
+// Keep the model's own light/dark split, re-shaded to the site palette. On the home page the hands
+// pick up the accent; on /arm everything stays neutral so a highlighted part stands out.
 const repaint = (o, inHand) => {
-  const c = o.material?.color;
+  const c = o.userData.srcColor || o.material?.color;
+  o.userData.srcColor = c;
   const isDark = c && c.r + c.g + c.b < 0.9;
-  o.material = isDark ? dark : inHand ? accent : shell;
+  o.userData.base = isDark ? dark : inHand && !ARM ? accent : shell;
+  o.material = o.userData.base;
 };
+const linkOf = (o) => { while (o && !o.isURDFLink) o = o.parent; return o?.name || ""; };
 
 let robot = null;
 const manager = new THREE.LoadingManager();
@@ -58,19 +64,41 @@ manager.onLoad = () => {
   });
   if (!robot.parent) scene.add(robot);
   robot.updateMatrixWorld(true);
-  const box = new THREE.Box3().setFromObject(robot);
-  const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
-  // Frame the upper body (head to hips); the pedestal below stands in for the hoverboard base.
-  const upper = new THREE.Vector3(c.x, box.max.y - 0.5, c.z);
-  controls.target.copy(upper);
-  camera.position.copy(upper).add(new THREE.Vector3(0.35, 0.1, 1).normalize().multiplyScalar(2.3));
-  status.textContent = "robotai v1 · life-size InMoov humanoid · drag to rotate";
+  if (ARM) {
+    applyPose(0);
+    robot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(robot.links.right_shoulder_y_link);
+    const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
+    controls.target.copy(c);
+    camera.position.copy(c).add(new THREE.Vector3(-0.9, 0.2, 1).normalize().multiplyScalar(size * 0.95));
+    status.textContent = "One arm, shoulder to fingertips · drag to rotate";
+  } else {
+    const box = new THREE.Box3().setFromObject(robot);
+    const c = box.getCenter(new THREE.Vector3());
+    // Frame the upper body (head to hips); the pedestal below stands in for the hoverboard base.
+    const upper = new THREE.Vector3(c.x, box.max.y - 0.5, c.z);
+    controls.target.copy(upper);
+    camera.position.copy(upper).add(new THREE.Vector3(0.35, 0.1, 1).normalize().multiplyScalar(2.3));
+    status.textContent = "robotai v1 · life-size InMoov humanoid · drag to rotate";
+  }
+  window.dispatchEvent(new Event("robot3d:ready"));
 };
 manager.onError = fail;
 function fail() { status.textContent = "3D model couldn't load. Check your connection."; }
 
 // Idle motion: arms reach and return out of phase, fingers curl, head looks around, torso twists slightly.
 const FINGERS = ["index", "index2", "index3", "majeure", "majeure2", "majeure3", "ringFinger", "ringfinger2", "ringfinger3", "pinky", "pinky2", "pinky3", "thumb", "thumb3"];
+const armPose = (t) => {
+  // Arm held out in front, forearm raised, wrist turning and fingers curling, so every part stays in view.
+  const out = {
+    right_shoulder_x_link_joint: 0.55, right_shoulder_y_link_joint: 0.1,
+    right_elbow_x_link_joint: 0.9 + 0.08 * Math.sin(t * 0.6),
+    right_wrist_z_link_joint: 0.6 * Math.sin(t * 0.5),
+  };
+  const curl = 0.5 + 0.5 * Math.sin(t * 1.1);
+  for (const f of FINGERS) out[`i01.rightHand.${f}_link_joint`] = curl;
+  return out;
+};
 const pose = (t) => {
   const out = {
     "i01.head.rothead_link_joint": 0.45 * Math.sin(t * 0.4),
@@ -97,14 +125,29 @@ function resize() {
 }
 new ResizeObserver(resize).observe(el);
 
+function applyPose(t) {
+  for (const [j, v] of Object.entries((ARM ? armPose : pose)(t))) {
+    const joint = robot.joints[j];
+    if (joint) joint.setJointValue(THREE.MathUtils.clamp(v, joint.limit.lower, joint.limit.upper));
+  }
+}
+
+// Highlight API for /arm: pass link names (or a prefix) to light them up; null clears.
+window.robot3d = {
+  highlight(part) {
+    if (!robot) return;
+    robot.traverse((o) => {
+      if (!o.isMesh || !o.userData.base) return;
+      const name = linkOf(o);
+      const hit = part && ((part.links || []).includes(name) || (part.prefix && name.startsWith(part.prefix) && !(part.exclude || []).includes(name)));
+      o.material = hit ? glow : o.userData.base;
+    });
+  },
+};
+
 const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
 renderer.setAnimationLoop((ms) => {
-  if (robot && !still) {
-    for (const [j, v] of Object.entries(pose(ms / 1000))) {
-      const joint = robot.joints[j];
-      if (joint) joint.setJointValue(THREE.MathUtils.clamp(v, joint.limit.lower, joint.limit.upper));
-    }
-  }
+  if (robot && !still) applyPose(ms / 1000);
   controls.update();
   renderer.render(scene, camera);
 });

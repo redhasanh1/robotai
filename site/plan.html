@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Build plan · robotai</title>
+<meta name="description" content="robotai: an open-source life-size AI humanoid built by students in Toronto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="/">robotai</a>
+    <nav>
+      <a href="/arm">The arm</a>
+      <a href="/plan">Build plan</a>
+      <a href="/parts">Parts</a>
+      <a href="/research">Research</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="page-head">
+    <div class="sec-head"><h1>Build plan</h1><span class="muted" id="plan-progress"></span></div>
+    <div class="lanes-head" id="lanes-head"></div>
+    <ol class="plan" id="plan-list"></ol>
+    <p class="muted legend">To mark a step done or add a photo, edit <code>data/roadmap.json</code> on GitHub.</p>
+  </section>
+</main>
+
+<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a></footer>
+<script src="/app.js"></script>
+</body>
+</html>

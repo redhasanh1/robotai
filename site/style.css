@@ -148,3 +148,37 @@ footer { padding: 48px 16px; font-size: 13px; }
   nav { gap: 12px; }
   .doc { padding: 4px 14px 16px; }
 }
+
+/* ---- multi-page ---- */
+nav a.active { color: var(--text); font-weight: 600; }
+.page-head { padding-top: 40px; }
+.page-head h1 { max-width: none; }
+.legend { font-size: 13px; margin-top: 14px; }
+.arm-stage.tall { height: 560px; }
+
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; margin-top: 16px; }
+.tile { display: block; background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 18px; color: var(--text); transition: border-color .15s, transform .15s; }
+.tile:hover { text-decoration: none; border-color: var(--accent); transform: translateY(-2px); }
+.tile b { display: block; font-size: 17px; margin-bottom: 4px; }
+.tile span { color: var(--muted); font-size: 14px; }
+
+.arm-layout { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; align-items: start; padding-top: 16px; }
+.arm-layout .arm-stage { height: 620px; position: sticky; top: 72px; }
+.arm-parts { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.arm-parts li { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; outline: none; transition: border-color .15s; }
+.arm-parts li.on, .arm-parts li:focus-visible { border-color: var(--hw); border-left-color: var(--hw); }
+.ap-head { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 6px; }
+.ap-head b { font-size: 16px; }
+.ap-head .muted { font-size: 13px; }
+.ap-head .pill { margin-left: auto; }
+.ap-row { font-size: 14px; color: var(--muted); margin-top: 2px; }
+.ap-row span { display: inline-block; min-width: 72px; font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--text); opacity: .7; }
+.pill { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line); color: var(--muted); }
+.pill.owned { color: var(--good); border-color: transparent; background: var(--good-soft); }
+.pill.pending { color: var(--hw); border-color: color-mix(in srgb, var(--hw) 45%, var(--line)); }
+
+@media (max-width: 860px) {
+  .arm-layout { grid-template-columns: 1fr; }
+  .arm-layout .arm-stage { position: static; height: 380px; }
+  .arm-stage.tall { height: 440px; }
+}

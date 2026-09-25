@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parts · robotai</title>
+<meta name="description" content="robotai: an open-source life-size AI humanoid built by students in Toronto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="/">robotai</a>
+    <nav>
+      <a href="/arm">The arm</a>
+      <a href="/plan">Build plan</a>
+      <a href="/parts">Parts</a>
+      <a href="/research">Research</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="page-head">
+    <div class="sec-head"><h1>Parts</h1><a class="btn" href="/robotai_BOM.xlsx">Download spreadsheet</a></div>
+    <p class="muted" id="parts-updated"></p>
+    <h3 id="p1-title"></h3>
+    <div class="table-wrap"><table id="p1-core"></table></div>
+    <h3>Optional: fingertip sensors</h3>
+    <div class="table-wrap"><table id="p1-opt"></table></div>
+    <details>
+      <summary>Alternatives &amp; swaps</summary>
+      <div class="table-wrap"><table id="p1-alt"></table></div>
+    </details>
+    <h3 id="p2-title"></h3>
+    <div class="table-wrap"><table id="p2"></table></div>
+  </section>
+</main>
+
+<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a></footer>
+<script src="/app.js"></script>
+</body>
+</html>

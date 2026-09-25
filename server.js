@@ -27,6 +27,8 @@ const TYPES = {
 function resolve(urlPath) {
   const p = decodeURIComponent(urlPath.split("?")[0]);
   if (p === "/") return path.join(ROOT, "site", "index.html");
+  const page = p.match(/^\/(arm|plan|parts|research)\/?$/);
+  if (page) return path.join(ROOT, "site", `${page[1]}.html`);
   if (p === "/robotai_BOM.xlsx") return path.join(ROOT, "robotai_BOM.xlsx");
   if (/^\/data\/[\w-]+\.json$/.test(p)) return path.join(ROOT, p);
   if (/^\/research\/[\w-]+\.md$/.test(p)) return path.join(ROOT, p);

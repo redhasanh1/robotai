@@ -18,6 +18,7 @@ const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
 const money = (n, cur = "CAD") => (cur === "USD" ? "US$" : "$") + Number(n).toLocaleString("en-CA", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const sum = (rows) => rows.reduce((t, r) => t + r.price * r.qty, 0);
+const getJSON = (url) => fetch(url).then((r) => r.json());
 
 function table(el, rows, cur, extra = []) {
   const head = `<thead><tr><th>Item</th><th>Product</th><th class="num">Unit</th><th class="num">Qty</th><th class="num">Total</th></tr></thead>`;
@@ -29,24 +30,26 @@ function table(el, rows, cur, extra = []) {
   el.innerHTML = head + `<tbody>${body}${foot}</tbody>`;
 }
 
-async function load() {
-  const [bom, road] = await Promise.all([fetch("/data/bom.json").then((r) => r.json()), fetch("/data/roadmap.json").then((r) => r.json())]);
-  const p1 = bom.phase1, p2 = bom.phase2;
-  const core = sum(p1.core), opt = sum(p1.optional), taxed = core * (1 + bom.tax_rate);
-  const p2usd = sum(p2.items);
+// Each page only has some of these sections; render whichever exist.
+async function home() {
+  if (!$("stats")) return;
+  const [bom, road] = await Promise.all([getJSON("/data/bom.json"), getJSON("/data/roadmap.json")]);
+  const taxed = sum(bom.phase1.core) * (1 + bom.tax_rate);
   const cards = road.steps.flatMap((st) => [st.hardware, st.software]);
-  const done = cards.filter((c) => c.done).length;
-
-  $("stats").innerHTML = [
-    [money(taxed), "Hands cart incl. tax"],
-    [money(bom.budget_cad - taxed), "Under the $" + bom.budget_cad + " budget"],
-    [money(p2usd, "USD"), "Full robot (draft)"],
-    [`${done}/${cards.length}`, "Plan steps done"],
-  ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
-
-  renderPlan(road);
   $("jobs").innerHTML = JOBS.map(([j, w]) => `<li class="${w}">${esc(j)}<span>${w === "now" ? "16-week build" : "next"}</span></li>`).join("");
+  $("stats").innerHTML = [
+    ["Life-size", "InMoov humanoid, 1.8 m design"],
+    ["C$1,500", "Whole-robot budget, printing free"],
+    [money(taxed), "Hands cart incl. tax"],
+    [`${cards.filter((c) => c.done).length}/${cards.length}`, "Plan steps done"],
+  ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+}
 
+async function parts() {
+  if (!$("p1-core")) return;
+  const bom = await getJSON("/data/bom.json");
+  const p1 = bom.phase1, p2 = bom.phase2;
+  const core = sum(p1.core), opt = sum(p1.optional), taxed = core * (1 + bom.tax_rate), p2usd = sum(p2.items);
   $("parts-updated").textContent = `Prices checked on the linked pages on ${bom.updated}. They change, so re-check before ordering.`;
   $("p1-title").textContent = p1.title;
   table($("p1-core"), p1.core, "CAD", [
@@ -61,6 +64,30 @@ async function load() {
     ["Subtotal", money(p2usd, "USD"), "sub"],
     [`≈ CAD at ${bom.usd_to_cad}`, money(p2usd * bom.usd_to_cad), "total"],
   ]);
+}
+
+async function arm() {
+  if (!$("arm-parts")) return;
+  const { parts } = await getJSON("/data/arm.json");
+  $("arm-parts").innerHTML = parts
+    .map((p, i) => `<li tabindex="0" data-i="${i}"><div class="ap-head"><b>${esc(p.name)}</b><span class="muted">${esc(p.joints)}</span><span class="pill ${p.status}">${p.status}</span></div>`
+      + `<div class="ap-row"><span>Moves by</span>${esc(p.actuator)}</div><div class="ap-row"><span>Made of</span>${esc(p.made)}</div></li>`)
+    .join("");
+  const pick = (li) => {
+    document.querySelectorAll("#arm-parts li").forEach((x) => x.classList.toggle("on", x === li));
+    window.robot3d?.highlight(li ? parts[+li.dataset.i] : null);
+  };
+  for (const li of document.querySelectorAll("#arm-parts li")) {
+    li.addEventListener("mouseenter", () => pick(li));
+    li.addEventListener("focus", () => pick(li));
+    li.addEventListener("click", () => pick(li));
+  }
+  $("arm-parts").addEventListener("mouseleave", () => pick(null));
+}
+
+async function plan() {
+  if (!$("plan-list")) return;
+  renderPlan(await getJSON("/data/roadmap.json"));
 }
 
 function card(c, lane) {
@@ -85,7 +112,12 @@ async function showDoc(i) {
   $("doc").querySelectorAll("a").forEach((a) => { a.target = "_blank"; a.rel = "noopener"; });
 }
 
-$("doc-tabs").innerHTML = DOCS.map(([name], i) => `<button role="tab" data-i="${i}">${esc(name)}</button>`).join("");
-$("doc-tabs").addEventListener("click", (e) => e.target.dataset.i && showDoc(+e.target.dataset.i));
-load();
-showDoc(0);
+function research() {
+  if (!$("doc-tabs")) return;
+  $("doc-tabs").innerHTML = DOCS.map(([name], i) => `<button role="tab" data-i="${i}">${esc(name)}</button>`).join("");
+  $("doc-tabs").addEventListener("click", (e) => e.target.dataset.i && showDoc(+e.target.dataset.i));
+  showDoc(0);
+}
+
+document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === location.pathname));
+home(); parts(); arm(); plan(); research();
