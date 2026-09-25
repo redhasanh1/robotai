@@ -78,6 +78,24 @@ for name, link in links.items():
 
 print("imported", count, "meshes")
 bpy.ops.object.light_add(type="SUN", location=(1, -2, 3))
+# open framed on the robot (front three-quarter view), nothing selected, solid shading with the part colours
+bpy.context.view_layer.update()
+for o in bpy.data.objects:
+    o.select_set(False)
+pts = [o.matrix_world @ Vector(c) for o in bpy.data.objects if o.type == "MESH" for c in o.bound_box]
+centre = sum(pts, Vector()) / len(pts)
+for screen in bpy.data.screens:
+    for area in screen.areas:
+        if area.type == "VIEW_3D":
+            sp = area.spaces.active
+            sp.shading.type = "SOLID"
+            sp.shading.color_type = "MATERIAL"
+            sp.clip_start, sp.clip_end = 0.01, 100
+            r3d = sp.region_3d
+            r3d.view_location = centre
+            r3d.view_distance = 2.4
+            r3d.view_perspective = "PERSP"
+            r3d.view_rotation = Euler((1.35, 0, 0.45), "XYZ").to_quaternion()
 bpy.ops.wm.save_as_mainfile(filepath=OUT)
 
 if PREVIEW:

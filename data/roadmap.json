@@ -21,7 +21,7 @@
       },
       "software": {
         "title": "Stack up",
-        "text": "LeRobot, sim, measure Cerebras latency from Toronto",
+        "text": "LeRobot + sim; run tools/cerebras_latency.py from Toronto",
         "done": false,
         "image": ""
       }
@@ -60,7 +60,7 @@
       "weeks": "7-8",
       "hardware": {
         "title": "Wheeled base",
-        "text": "Hoverboard drive base, battery, e-stop",
+        "text": "Hoverboard base, e-stop, laptop tray (the laptop rides onboard)",
         "done": false,
         "image": ""
       },
@@ -96,7 +96,7 @@
       },
       "software": {
         "title": "Cerebras brain",
-        "text": "Voice → plan → act → check, live",
+        "text": "Cerebras API brain: voice -> plan -> act -> check, live",
         "done": false,
         "image": ""
       }
