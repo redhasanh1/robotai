@@ -1,6 +1,15 @@
 # robotai
-Dual-hand robotic project - ESP32-driven robotic hands, growing into an AI home-helper robot.
 
-- `robotai_BOM.xlsx` - verified parts list for Phase 1 (two InMoov-style hands): $316.40 CAD pre-tax, under the $500 budget
-- `research/physical_ai_research.md` - arm/base platform, open robot policies, where Cerebras fast inference fits, 4-month plan
-- `tools/build_bom.py` - regenerates the spreadsheet
+An open-source AI home-helper robot, built by students in Toronto over 16 weeks.
+Phase 1 is two 3D-printed robotic hands. Phase 2 is a two-arm mobile robot that learns chores from demonstrations, with a fast multimodal model on Cerebras doing the planning.
+
+**Live site:** served from this repo on Railway, and every push to `main` redeploys it.
+
+## Update the site
+| What | Edit | Then |
+|---|---|---|
+| Parts / prices | `data/bom.json` | `python tools/build_bom.py` to rebuild `robotai_BOM.xlsx` |
+| Roadmap progress | `data/roadmap.json` (`"done": true`) | nothing |
+| Research | `research/*.md` | new files: add to `DOCS` in `site/app.js` |
+
+Run locally: `npm start`, then open http://localhost:3000

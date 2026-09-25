@@ -1,0 +1,278 @@
+{
+  "updated": "2026-09-25",
+  "budget_cad": 500,
+  "tax_rate": 0.13,
+  "usd_to_cad": 1.38,
+  "phase1": {
+    "title": "Phase 1 - Two robotic hands",
+    "currency": "CAD",
+    "core": [
+      {
+        "item": "ESP32 dev board (x2, one per hand)",
+        "product": "Freenove ESP32 Development Board ESP32 Kit (2 Pack)",
+        "url": "https://www.amazon.ca/dp/B0C9THDPXP",
+        "price": 27.95,
+        "qty": 1,
+        "notes": "One 2-pack covers both hands ($13.98/board). ESP32-WROOM, 4.4* (527), well documented."
+      },
+      {
+        "item": "Finger servos (10 + 2 spares) - GOOD tier",
+        "product": "Deegoo-FPV MG996R Metal Gear Digital Servo, 4-Pack",
+        "url": "https://www.amazon.ca/dp/B07MFK266B",
+        "price": 35.22,
+        "qty": 3,
+        "notes": "12 metal-gear standard servos, ~12 kg-cm @6V, $8.81/ea, 4.5* (1,182). Fits stock InMoov forearm. Showed 'only 6 left' - fallback: Aideepen MG996R 6-pack x2 (see Alternatives)."
+      },
+      {
+        "item": "Servo driver (x2, one per hand)",
+        "product": "HiLetgo PCA9685 16-Channel 12-Bit PWM Servo Driver (I2C), 2-Pack",
+        "url": "https://www.amazon.ca/dp/B07BRS249H",
+        "price": 24.14,
+        "qty": 1,
+        "notes": "Adafruit-layout clone, works with Adafruit PWM library on ESP32. One board per hand matches 1-ESP32-per-hand; a single board (16 ch) could drive all 10 servos but would tie both hands to one ESP32."
+      },
+      {
+        "item": "Servo power supply (x2, one per hand)",
+        "product": "SHNITPWR 3.5-12V Adjustable 10A 120W Power Supply w/ LCD",
+        "url": "https://www.amazon.ca/dp/B08N4FB7MF",
+        "price": 36.99,
+        "qty": 2,
+        "notes": "Set to 6V. 10A = 5 MG996R running + 2-3 stalled (~2.5A stall each). LCD guards against accidental 12V. 4.3* (216). Servos NEVER on ESP32 5V pin; tie grounds."
+      },
+      {
+        "item": "DC barrel-jack to screw-terminal adapters",
+        "product": "20 PCS Female DC 5.5x2.1mm Barrel to Screw Terminal",
+        "url": "https://www.amazon.ca/dp/B0C4JJ2HB4",
+        "price": 11.99,
+        "qty": 1,
+        "notes": "Connects PSU to PCA9685 V+ terminal. Small jacks run warm near 10A - cutting the plug and screwing wire in is safer."
+      },
+      {
+        "item": "Tendon line (shared spool)",
+        "product": "HERCULES 8-Strand Braided PE Fishing Line, 50lb, 0.37mm, 100m",
+        "url": "https://www.amazon.ca/dp/B0791D5G7J",
+        "price": 16.99,
+        "qty": 1,
+        "notes": "InMoov-class braid, low stretch; 100m is far more than both hands need. 4.5* (7.7K). Price for 50lb/100m variant."
+      },
+      {
+        "item": "Finger return springs",
+        "product": "Swpeet 150pc Stainless Extension Spring Assortment (15 sizes x 10)",
+        "url": "https://www.amazon.ca/dp/B0D7W3RT31",
+        "price": 20.99,
+        "qty": 1,
+        "notes": "10 of each size, so 10 matching springs per size for 10 fingers, lets you tune return force. 4.6* (111)."
+      },
+      {
+        "item": "Jumper wire kit",
+        "product": "ELEGOO 120pc 20cm Dupont Wire (40 M-F / 40 M-M / 40 F-F)",
+        "url": "https://www.amazon.ca/dp/B01EV70C78",
+        "price": 12.99,
+        "qty": 1,
+        "notes": "Signal/I2C wiring ESP32<->PCA9685. 4.7* (14.8K). One kit covers both hands."
+      },
+      {
+        "item": "Servo extension cables",
+        "product": "10pc 30cm 3-Pin Servo Extension Cable (JR, F-M)",
+        "url": "https://www.amazon.ca/dp/B09VGDJ6Z8",
+        "price": 8.27,
+        "qty": 1,
+        "notes": "Forearm servos to PCA9685 headers. Free shipping but slow (est. Oct 20-Nov 9); Prime alt in Alternatives."
+      },
+      {
+        "item": "Servo power wire",
+        "product": "BNTECHGO 18 AWG Silicone Wire, Red/Black, 10ft",
+        "url": "https://www.amazon.ca/dp/B01AQOI36M",
+        "price": 13.44,
+        "qty": 1,
+        "notes": "18AWG handles the 10A servo bus; Dupont wire (24AWG) must not carry servo power. 4.5* (438)."
+      }
+    ],
+    "optional": [
+      {
+        "item": "Fingertip force sensors (x2, proof of concept)",
+        "product": "Interlink FSR 402 (30-81794), genuine - DigiKey.ca",
+        "url": "https://www.digikey.ca/en/products/detail/interlink-electronics/30-81794/2476468",
+        "price": 10.43,
+        "qty": 2,
+        "notes": "One per hand (e.g. index finger) on an ESP32 ADC pin via 10k divider. Qty-1 price break $10.43; qty 10 drops to $9.02/ea ($90.19) if you want all fingertips. DigiKey shipping for small orders NOT verified (free over $100 CAD). Amazon clones have 1 review - avoid."
+      }
+    ],
+    "alternatives": [
+      {
+        "item": "Servos - BUDGET tier",
+        "product": "Miuzei MG90S Metal Gear Micro Servo, 10-Pack",
+        "url": "https://www.amazon.ca/dp/B0BWJ26PX2",
+        "price": 39.99,
+        "qty": 1,
+        "notes": "Saves $65.67 vs MG996R, but only ~2 kg-cm and micro size: needs a remixed (non-stock) InMoov forearm. 4.5* (784)."
+      },
+      {
+        "item": "Servos - cheapest metal-gear standard",
+        "product": "Aideepen MG996R, 6-Pack",
+        "url": "https://www.amazon.ca/dp/B09LS7RB5J",
+        "price": 39.99,
+        "qty": 2,
+        "notes": "12 servos for $79.98. Fallback if Deegoo sells out. Price from search results page. 4.3* (123)."
+      },
+      {
+        "item": "Servos - alt MG996R",
+        "product": "Miuzei MG996R Metal Gear, 4-Pack",
+        "url": "https://www.amazon.ca/dp/B0BZ4N367M",
+        "price": 42.99,
+        "qty": 3,
+        "notes": "Spec'd 15.2 kg-cm @6V. 4.4* (163)."
+      },
+      {
+        "item": "Servos - PREMIUM tier",
+        "product": "Miuzei 20KG DS3218 Metal Gear Digital, 180deg, 4-Pack",
+        "url": "https://www.amazon.ca/dp/B0FH53CKCS",
+        "price": 65.99,
+        "qty": 3,
+        "notes": "~20 kg-cm, stronger grip; $197.97 for 12 (+$92 vs core). Search results price. 4.6* (47)."
+      },
+      {
+        "item": "Servo driver - single board",
+        "product": "JZK PCA9685 16-Channel PWM Driver (single)",
+        "url": "https://www.amazon.ca/dp/B06XSFFXQY",
+        "price": 10.59,
+        "qty": 1,
+        "notes": "One board can run all 10 servos, but then one ESP32 drives both hands. 4.3* (222)."
+      },
+      {
+        "item": "Power - alt per-hand PSU",
+        "product": "SHNITPWR 3.5-12V 12A 144W Adjustable",
+        "url": "https://www.amazon.ca/dp/B0CKXW6ZCJ",
+        "price": 36.79,
+        "qty": 2,
+        "notes": "More headroom, same price. 4.1* (102)."
+      },
+      {
+        "item": "Power - ONE supply for both hands",
+        "product": "Aclorol 5V 20A 100W Switching PSU (screw terminals)",
+        "url": "https://www.amazon.ca/dp/B07KC55TJF",
+        "price": 39.44,
+        "qty": 1,
+        "notes": "Saves ~$34 but max ~5.75V (less torque), single point of failure, exposed mains terminals need a cover. Needs AC cord below. 4.5* (182)."
+      },
+      {
+        "item": "Power - AC cord for 20A PSU",
+        "product": "Bergen 3ft 16AWG 3-wire pigtail cord",
+        "url": "https://www.amazon.ca/dp/B07BQCMPF2",
+        "price": 6.87,
+        "qty": 1,
+        "notes": "Only with the single-PSU option. Search results price."
+      },
+      {
+        "item": "Barrel adapters - small pack",
+        "product": "2 Male + 2 Female 5.5x2.1 to Screw Terminal",
+        "url": "https://www.amazon.ca/dp/B07JMY5XXT",
+        "price": 9.35,
+        "qty": 1,
+        "notes": "Search results price. 4.6* (114)."
+      },
+      {
+        "item": "Tendon - alt",
+        "product": "Reaction Tackle Braided Line 50lb 150yd",
+        "url": "https://www.amazon.ca/dp/B01MRMI7R1",
+        "price": 21.41,
+        "qty": 1,
+        "notes": "4.3* (26.5K). Diameter not listed."
+      },
+      {
+        "item": "Springs - alt",
+        "product": "Glarks 100pc Extension Springs, 25 sizes x 4",
+        "url": "https://www.amazon.ca/dp/B0D7CP84F4",
+        "price": 20.95,
+        "qty": 1,
+        "notes": "Only 4 per size - not enough matching springs for 10 fingers."
+      },
+      {
+        "item": "Jumper kit - alt",
+        "product": "240pc 10cm+20cm Jumper Wire Kit",
+        "url": "https://www.amazon.ca/dp/B0BTT48V7P",
+        "price": 15.99,
+        "qty": 1,
+        "notes": "Search results price. 4.6* (551)."
+      },
+      {
+        "item": "Servo extensions - Prime alt",
+        "product": "10pc 30cm 3-Pin Servo Extension (Futaba/JR)",
+        "url": "https://www.amazon.ca/dp/B07NJB58XC",
+        "price": 11.99,
+        "qty": 1,
+        "notes": "Shipped by Amazon (faster). 4.4* (40)."
+      },
+      {
+        "item": "Power wire - longer",
+        "product": "BNTECHGO 18 AWG Silicone Wire 25ft",
+        "url": "https://www.amazon.ca/dp/B07HGTKQ89",
+        "price": 19.82,
+        "qty": 1,
+        "notes": "Search results price."
+      },
+      {
+        "item": "FSR - 10 genuine (all fingertips)",
+        "product": "Interlink FSR 402 (30-81794) x10 - DigiKey.ca",
+        "url": "https://www.digikey.ca/en/products/detail/interlink-electronics/30-81794/2476468",
+        "price": 90.19,
+        "qty": 1,
+        "notes": "$9.02/ea at qty 10; one per fingertip on both hands."
+      },
+      {
+        "item": "FSR - Amazon clone",
+        "product": "RELAND SUN FSR402-short (clone), sold singly",
+        "url": "https://www.amazon.ca/dp/B0B5F7JDT5",
+        "price": 8.19,
+        "qty": 10,
+        "notes": "Only 1 review, +$9.50 shipping. Not recommended."
+      }
+    ]
+  },
+  "phase2": {
+    "title": "Phase 2 - Mobile two-arm robot (draft, being refined by Kimi)",
+    "currency": "USD",
+    "items": [
+      {
+        "item": "SO-ARM101 Pro motor kit (leader+follower servos, driver, cables)",
+        "product": "Seeed Studio",
+        "url": "https://www.seeedstudio.com/SO-101-Low-Cost-AI-Arm-Kit-Pro-p-6427.html",
+        "price": 249.9,
+        "qty": 2,
+        "notes": "Core arm. 2 kits = bimanual. STS3215 bus servos. LeRobot-native."
+      },
+      {
+        "item": "SO-101 printed parts",
+        "product": "Seeed Studio (or print yourself = $0)",
+        "url": "https://www.seeedstudio.com/SO-101-Low-Cost-AI-Arm-Kit-Pro-p-6427.html",
+        "price": 0,
+        "qty": 2,
+        "notes": "3D printing is covered, so $0. Seeed sells printed sets at $29.90 if needed."
+      },
+      {
+        "item": "Mobile base (LeKiwi base, or DIY XLeRobot IKEA cart)",
+        "product": "AIFITLAB LeKiwi",
+        "url": "https://aifitlab.com/products/lerobot-lekiwi-low-cost-mobile-manipulator",
+        "price": 260.0,
+        "qty": 1,
+        "notes": "'from $260'. XLeRobot full BOM ~$660 incl. arms: https://github.com/Vector-Wangel/XLeRobot"
+      },
+      {
+        "item": "USB cameras (head + 2 wrist)",
+        "product": "Seeed X10 USB camera",
+        "url": "https://www.seeedstudio.com/LeKiwi-Full-Kit-12V-Verision.html",
+        "price": 12.0,
+        "qty": 3,
+        "notes": "Listed as LeKiwi add-on."
+      },
+      {
+        "item": "On-robot compute",
+        "product": "NVIDIA Jetson Orin Nano Super Dev Kit",
+        "url": "https://jetsonhacks.com/2024/12/17/jetson-orin-nano-super-developer-kit/",
+        "price": 249.0,
+        "qty": 1,
+        "notes": "Runs ACT/SmolVLA locally. Skip and use a laptop to save $249."
+      }
+    ]
+  }
+}

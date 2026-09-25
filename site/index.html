@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>robotai</title>
+<meta name="description" content="robotai: an open-source AI home-helper robot built by students in Toronto.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <a class="brand" href="/">robotai</a>
+    <nav>
+      <a href="#roadmap">Roadmap</a>
+      <a href="#parts">Parts</a>
+      <a href="#research">Research</a>
+      <a href="#contribute">Contribute</a>
+    </nav>
+  </div>
+</header>
+
+<main class="wrap">
+  <section class="hero">
+    <h1>An AI home-helper robot, built by students in 16 weeks.</h1>
+    <p class="lede">Two 3D-printed robotic hands, then a two-arm mobile robot that learns chores from demonstrations. A fast multimodal model on Cerebras does the planning.</p>
+    <div class="stats" id="stats"></div>
+  </section>
+
+  <section id="roadmap">
+    <div class="sec-head"><h2>Roadmap</h2><span class="muted" id="roadmap-progress"></span></div>
+    <ol class="roadmap" id="roadmap-list"></ol>
+  </section>
+
+  <section id="parts">
+    <div class="sec-head"><h2>Parts</h2><a class="btn" href="/robotai_BOM.xlsx">Download spreadsheet</a></div>
+    <p class="muted" id="parts-updated"></p>
+
+    <h3 id="p1-title"></h3>
+    <div class="table-wrap"><table id="p1-core"></table></div>
+
+    <h3>Optional: fingertip sensors</h3>
+    <div class="table-wrap"><table id="p1-opt"></table></div>
+
+    <details>
+      <summary>Alternatives &amp; swaps</summary>
+      <div class="table-wrap"><table id="p1-alt"></table></div>
+    </details>
+
+    <h3 id="p2-title"></h3>
+    <div class="table-wrap"><table id="p2"></table></div>
+  </section>
+
+  <section id="research">
+    <div class="sec-head"><h2>Research</h2></div>
+    <div class="tabs" role="tablist" id="doc-tabs"></div>
+    <article class="doc" id="doc"></article>
+  </section>
+
+  <section id="contribute">
+    <div class="sec-head"><h2>Contribute</h2></div>
+    <p>This site is generated from the GitHub repo, and every push redeploys it automatically.</p>
+    <ul class="plain">
+      <li><strong>Parts:</strong> edit <code>data/bom.json</code>, then run <code>python tools/build_bom.py</code> to rebuild the spreadsheet</li>
+      <li><strong>Roadmap:</strong> set <code>"done": true</code> in <code>data/roadmap.json</code></li>
+      <li><strong>Research:</strong> add or edit Markdown in <code>research/</code> (register new files in <code>DOCS</code> in <code>site/app.js</code>)</li>
+    </ul>
+    <a class="btn" href="https://github.com/redhasanh1/robotai">Open the repo</a>
+  </section>
+</main>
+
+<footer class="wrap muted">robotai · Toronto · open source</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>

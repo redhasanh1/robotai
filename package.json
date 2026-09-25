@@ -1,0 +1,12 @@
+{
+  "name": "robotai-site",
+  "version": "1.0.0",
+  "private": true,
+  "description": "robotai project site: BOM, roadmap and research, served from the repo",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

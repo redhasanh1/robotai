@@ -1,0 +1,16 @@
+{
+  "start": "2026-09-28",
+  "note": "Set \"done\": true when a milestone ships. Weeks follow research/physical_ai_research.md and research/kimi_research.md.",
+  "milestones": [
+    { "weeks": "1", "title": "Order parts", "detail": "Order Phase 1 hands + Phase 2 arm servos in week 1: China lead times run 2-4 weeks to Toronto.", "done": false },
+    { "weeks": "1-2", "title": "Print + sim", "detail": "Print InMoov hands and SO-101 parts at school. Set up LeRobot and the XLeRobot MuJoCo sim.", "done": false },
+    { "weeks": "3-4", "title": "Hands alive + first arm", "detail": "Wire both hands (ESP32 + PCA9685 + 6V PSU). Build one SO-101 leader/follower pair, calibrate, teleop pick-and-place.", "done": false },
+    { "weeks": "5-6", "title": "Full robot assembled", "detail": "Second arm, cart base, omni wheels, head + wrist cameras, battery. Teleop the whole robot.", "done": false },
+    { "weeks": "7-8", "title": "First autonomy (ACT)", "detail": "Record 50-100 demos of one task (object into bin). Train ACT, measure success rate.", "done": false },
+    { "weeks": "9-10", "title": "SmolVLA", "detail": "Fine-tune SmolVLA on our data, add async inference, reach 3 tidy/fetch tasks.", "done": false },
+    { "weeks": "11-12", "title": "Cerebras brain", "detail": "System-2 VLM loop on Cerebras (~1 Hz): voice -> plan -> atomic commands -> VLM success check -> replan.", "done": false },
+    { "weeks": "13-14", "title": "Kitchen prep demo", "detail": "\"Bring me the sandwich ingredients\" skill chain with VLM-judge recovery.", "done": false },
+    { "weeks": "15", "title": "Robustness", "detail": "New objects, new lighting, mid-task interruptions. Log success rates.", "done": false },
+    { "weeks": "16", "title": "Ship it", "detail": "Open-source release, demo video, write-up (fast System-2 vs slow System-2).", "done": false }
+  ]
+}
