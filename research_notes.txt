@@ -1,0 +1,75 @@
+robotai - Dual-hand robotic project - Research Notes
+======================================================
+
+GOAL
+----
+Build a BOM (Bill of Materials) for two 3D-printed robotic hands (3D printing
+is free/already covered, NOT part of this budget), each driven by its own
+ESP32 dev board. Total budget for everything else: under $500 CAD.
+User explicitly wants "a good hand" - not the cheapest/flimsiest option.
+Final deliverable: an Excel BOM (Item, Product Name, Link, Unit Price CAD,
+Quantity, Line Total, Notes) with a core total (must stay under $500 CAD) and
+a clearly SEPARATE optional section for fingertip pressure/touch sensors
+(FSRs) with its own subtotal.
+
+DESIGN ASSUMPTIONS
+-------------------
+- 2 hands, standard InMoov-style tendon-driven design
+- 1 ESP32 dev board PER hand (2 total, not shared)
+- 5 servo motors per hand (10 total) - one per finger, tendon + spring return
+- Servos need their OWN 5-6V power supply, NOT powered off the ESP32 5V pin
+  (5 servos under load draw real current)
+- Tendons: thin braided line (fishing line), one shared spool likely covers
+  both hands
+- Springs: small extension/return springs, enough for 10 fingers total
+- Optional: FSR fingertip pressure sensors, e.g. 2 units (one per hand,
+  proof-of-concept), kept as a separate optional line item/subtotal
+
+CONFIRMED REAL RESEARCH SO FAR
+-------------------------------
+1. ESP32 dev boards (need 2, one per hand):
+   Product: Freenove ESP32 Development Board ESP32 Kit (2 Pack)
+   Price: $27.95 CAD (2-pack - covers both hands' ESP32 requirement in ONE
+   purchase, no need to buy twice)
+   Source: Amazon.ca search results, "esp32 devkit v1 development board"
+   Rating: 4.4 stars, 527 ratings, "100+ bought in past month"
+   URL (has tracking params, re-search "Freenove ESP32 Development Board
+   ESP32 Kit 2 Pack" on Amazon.ca if the link below expires):
+   https://www.amazon.ca/Freenove-Dual-core-Microcontroller-Development-Projects/dp/B0C9THDPXP
+
+   Other options seen on the same search (not chosen, for reference):
+   - Freenove ESP32 Camera Dev Board Kit w/ 1GB card - $26.95 CAD (has camera,
+     not needed for this project, similar price)
+   - DOIT DEVIT V1 ESP32-WROOM-32 board (single) - $23.99 CAD
+   - Freenove ESP32-S3 Dev Board Kit (8MB Flash, 2 Pack) - $31.95 CAD (newer
+     S3 variant, more expensive, probably unnecessary for this project)
+
+STILL NEEDED (NOT YET RESEARCHED WITH REAL LINKS/PRICES)
+-----------------------------------------------------------
+- Finger servo motors x10 (5 per hand) - need to compare a cheap plastic-gear
+  option (e.g. SG90/MG90S) vs a sturdier metal-gear option (e.g. MG996R),
+  multi-packs are usually cheaper per unit
+- Servo driver/controller board - e.g. PCA9685 16-channel PWM driver x2 (one
+  per hand), OR check if one 16-channel board could serve both hands' 10
+  servos combined instead (note the tradeoff either way)
+- 5-6V power supply / buck converter for servos x2 (one per hand), sized for
+  5 servos under load - or note if one shared higher-current supply works
+- Tendon material (braided fishing line) x1 spool
+- Small extension/return springs, pack covering 10 fingers
+- Wiring / connectors / jumper wire kit x1-2
+- OPTIONAL: FSR fingertip pressure sensors (e.g. FSR402) - price per unit and
+  pack size, recommend qty 2 as a separate optional line item
+
+KNOWN BLOCKER
+-------------
+Amazon.ca blocks plain WebFetch/automated page fetches (returns HTTP 503).
+Real product data can only be pulled by rendering the page in an actual
+browser (e.g. browser automation tools), not a simple fetch. DigiKey.ca
+fetches were noted as working reliably in an earlier attempt, so it's a good
+alternative/fallback source for the electronic components (servo driver
+board, buck converter, connectors) if Amazon browsing is inconvenient.
+
+GITHUB
+------
+Repo already created: https://github.com/redhasanh1/robotai
+(README + description set, this file being pushed to the repo root)
