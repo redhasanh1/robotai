@@ -25,19 +25,17 @@ async function load() {
   const p1 = bom.phase1, p2 = bom.phase2;
   const core = sum(p1.core), opt = sum(p1.optional), taxed = core * (1 + bom.tax_rate);
   const p2usd = sum(p2.items);
-  const done = road.milestones.filter((m) => m.done).length;
+  const cards = road.steps.flatMap((st) => [st.hardware, st.software]);
+  const done = cards.filter((c) => c.done).length;
 
   $("stats").innerHTML = [
     [money(taxed), "Hands cart incl. tax"],
     [money(bom.budget_cad - taxed), "Under the $" + bom.budget_cad + " budget"],
     [money(p2usd, "USD"), "Full robot (draft)"],
-    [`${done}/${road.milestones.length}`, "Milestones done"],
+    [`${done}/${cards.length}`, "Plan steps done"],
   ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
 
-  $("roadmap-progress").textContent = `Starts ${road.start}`;
-  $("roadmap-list").innerHTML = road.milestones
-    .map((m) => `<li class="${m.done ? "done" : ""}"><span class="dot"></span><span class="w">Wk ${esc(m.weeks)}</span><div><div class="t">${esc(m.title)}</div><div class="d">${esc(m.detail)}</div></div></li>`)
-    .join("");
+  renderPlan(road);
 
   $("parts-updated").textContent = `Prices checked on the linked pages on ${bom.updated}. They change, so re-check before ordering.`;
   $("p1-title").textContent = p1.title;
@@ -53,6 +51,21 @@ async function load() {
     ["Subtotal", money(p2usd, "USD"), "sub"],
     [`≈ CAD at ${bom.usd_to_cad}`, money(p2usd * bom.usd_to_cad), "total"],
   ]);
+}
+
+function card(c, lane) {
+  const img = c.image ? `<img src="${esc(c.image)}" alt="${esc(c.title)}" loading="lazy">` : "";
+  return `<div class="card ${lane}${c.done ? " done" : ""}">${img}<div class="ct"><span class="tick"></span>${esc(c.title)}</div><div class="cx">${esc(c.text)}</div></div>`;
+}
+
+function renderPlan(road) {
+  const L = road.lanes;
+  $("lanes-head").innerHTML = ["hardware", "software"]
+    .map((k) => `<div class="lane-label ${k}"><b>${esc(L[k].name)}</b> · ${esc(L[k].owner)}</div>`).join("");
+  $("plan-progress").textContent = `16 weeks from ${road.start}`;
+  $("plan-list").innerHTML = road.steps
+    .map((st) => `<li class="${st.hardware.done && st.software.done ? "done" : ""}">${card(st.hardware, "hardware")}<div class="wk"><span>Wk ${esc(st.weeks)}</span></div>${card(st.software, "software")}</li>`)
+    .join("");
 }
 
 async function showDoc(i) {

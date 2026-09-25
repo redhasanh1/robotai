@@ -16,6 +16,9 @@ const TYPES = {
   ".svg": "image/svg+xml",
   ".png": "image/png",
   ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
 
@@ -26,6 +29,7 @@ function resolve(urlPath) {
   if (p === "/robotai_BOM.xlsx") return path.join(ROOT, "robotai_BOM.xlsx");
   if (/^\/data\/[\w-]+\.json$/.test(p)) return path.join(ROOT, p);
   if (/^\/research\/[\w-]+\.md$/.test(p)) return path.join(ROOT, p);
+  if (/^\/img\/[\w.-]+\.(png|jpe?g|webp|gif|svg)$/.test(p)) return path.join(ROOT, "site", p);
   if (/^\/[\w-]+\.(css|js|svg|png|jpg)$/.test(p)) return path.join(ROOT, "site", p);
   return null;
 }

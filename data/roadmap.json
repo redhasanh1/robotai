@@ -1,16 +1,49 @@
 {
   "start": "2026-09-28",
-  "note": "Set \"done\": true when a milestone ships. Weeks follow research/physical_ai_research.md and research/kimi_research.md.",
-  "milestones": [
-    { "weeks": "1", "title": "Order parts", "detail": "Order Phase 1 hands + Phase 2 arm servos in week 1: China lead times run 2-4 weeks to Toronto.", "done": false },
-    { "weeks": "1-2", "title": "Print + sim", "detail": "Print InMoov hands and SO-101 parts at school. Set up LeRobot and the XLeRobot MuJoCo sim.", "done": false },
-    { "weeks": "3-4", "title": "Hands alive + first arm", "detail": "Wire both hands (ESP32 + PCA9685 + 6V PSU). Build one SO-101 leader/follower pair, calibrate, teleop pick-and-place.", "done": false },
-    { "weeks": "5-6", "title": "Full robot assembled", "detail": "Second arm, cart base, omni wheels, head + wrist cameras, battery. Teleop the whole robot.", "done": false },
-    { "weeks": "7-8", "title": "First autonomy (ACT)", "detail": "Record 50-100 demos of one task (object into bin). Train ACT, measure success rate.", "done": false },
-    { "weeks": "9-10", "title": "SmolVLA", "detail": "Fine-tune SmolVLA on our data, add async inference, reach 3 tidy/fetch tasks.", "done": false },
-    { "weeks": "11-12", "title": "Cerebras brain", "detail": "System-2 VLM loop on Cerebras (~1 Hz): voice -> plan -> atomic commands -> VLM success check -> replan.", "done": false },
-    { "weeks": "13-14", "title": "Kitchen prep demo", "detail": "\"Bring me the sandwich ingredients\" skill chain with VLM-judge recovery.", "done": false },
-    { "weeks": "15", "title": "Robustness", "detail": "New objects, new lighting, mid-task interruptions. Log success rates.", "done": false },
-    { "weeks": "16", "title": "Ship it", "detail": "Open-source release, demo video, write-up (fast System-2 vs slow System-2).", "done": false }
+  "lanes": {
+    "hardware": { "name": "Hardware", "owner": "Mechanical" },
+    "software": { "name": "Physical AI", "owner": "Hasan" }
+  },
+  "steps": [
+    {
+      "weeks": "1-2",
+      "hardware": { "title": "Order + print", "text": "Parts ordered, hands and arm parts printing", "done": false, "image": "" },
+      "software": { "title": "Stack up", "text": "LeRobot, sim, Cerebras API hello-world", "done": false, "image": "" }
+    },
+    {
+      "weeks": "3-4",
+      "hardware": { "title": "Hands", "text": "Both hands assembled: tendons, springs, servos", "done": false, "image": "" },
+      "software": { "title": "Hands move", "text": "ESP32 finger control + teleop", "done": false, "image": "" }
+    },
+    {
+      "weeks": "5-6",
+      "hardware": { "title": "Arms", "text": "Two SO-101 arms built and calibrated", "done": false, "image": "" },
+      "software": { "title": "Teleop + data", "text": "Drive the arms, record demos", "done": false, "image": "" }
+    },
+    {
+      "weeks": "7-8",
+      "hardware": { "title": "Base", "text": "Cart, omni wheels, power, mounts", "done": false, "image": "" },
+      "software": { "title": "First autonomy", "text": "ACT policy does one task alone", "done": false, "image": "" }
+    },
+    {
+      "weeks": "9-10",
+      "hardware": { "title": "Eyes", "text": "Head + wrist cameras, cable routing", "done": false, "image": "" },
+      "software": { "title": "Many skills", "text": "SmolVLA across several tasks", "done": false, "image": "" }
+    },
+    {
+      "weeks": "11-12",
+      "hardware": { "title": "Grip", "text": "Soft TPU grippers, hand-on-arm test", "done": false, "image": "" },
+      "software": { "title": "Cerebras brain", "text": "Voice → plan → act → check, live", "done": false, "image": "" }
+    },
+    {
+      "weeks": "13-14",
+      "hardware": { "title": "Kitchen rig", "text": "Counter setup, fixtures, fixes", "done": false, "image": "" },
+      "software": { "title": "Fast-inference unlock", "text": "The thing only Cerebras speed makes possible", "done": false, "image": "" }
+    },
+    {
+      "weeks": "15-16",
+      "hardware": { "title": "Polish", "text": "E-stop, safety, final build", "done": false, "image": "" },
+      "software": { "title": "Demo", "text": "Kitchen demo, video, write-up", "done": false, "image": "" }
+    }
   ]
 }
