@@ -16,7 +16,7 @@ Researched 2026-09-25. All prices are **USD** unless marked CAD. Prices come fro
 
 ## 1. What Kimi said
 
-**Kimi was unavailable.** kimi.com (tab opened 2026-09-25) showed the chat box to a logged-out visitor. On submit it opened a login wall: WeChat QR or phone number (+86 default) plus a verification code, with "Log in with Google" as another option. I did not create an account or enter credentials, per instructions. **None of the claims below come from Kimi.** Everything was gathered with web search and direct page fetches. If you want a Kimi pass, log in to kimi.com yourself and re-run the prompt. The full prompt text is in Appendix A.
+**Update 2026-09-25:** Kimi was re-run on kimi.ai while logged in. See [kimi_research.md](kimi_research.md) for its answer and a cross-check against this brief. (The first attempt on kimi.com hit a login wall; nothing below comes from Kimi.)
 
 ---
 
