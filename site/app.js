@@ -66,23 +66,31 @@ async function parts() {
   ]);
 }
 
-async function arm() {
-  if (!$("arm-parts")) return;
-  const { parts } = await getJSON("/data/arm.json");
-  $("arm-parts").innerHTML = parts
+// Part list next to a 3D view: pointing at a part lights it up in the model.
+async function partList(listId, url) {
+  if (!$(listId)) return null;
+  const data = await getJSON(url);
+  const list = $(listId);
+  list.innerHTML = data.parts
     .map((p, i) => `<li tabindex="0" data-i="${i}"><div class="ap-head"><b>${esc(p.name)}</b><span class="muted">${esc(p.joints)}</span><span class="pill ${p.status}">${p.status}</span></div>`
       + `<div class="ap-row"><span>Moves by</span>${esc(p.actuator)}</div><div class="ap-row"><span>Made of</span>${esc(p.made)}</div></li>`)
     .join("");
   const pick = (li) => {
-    document.querySelectorAll("#arm-parts li").forEach((x) => x.classList.toggle("on", x === li));
-    window.robot3d?.highlight(li ? parts[+li.dataset.i] : null);
+    list.querySelectorAll("li").forEach((x) => x.classList.toggle("on", x === li));
+    window.robot3d?.highlight(li ? data.parts[+li.dataset.i] : null);
   };
-  for (const li of document.querySelectorAll("#arm-parts li")) {
-    li.addEventListener("mouseenter", () => pick(li));
-    li.addEventListener("focus", () => pick(li));
-    li.addEventListener("click", () => pick(li));
+  for (const li of list.querySelectorAll("li")) {
+    for (const ev of ["mouseenter", "focus", "click"]) li.addEventListener(ev, () => pick(li));
   }
-  $("arm-parts").addEventListener("mouseleave", () => pick(null));
+  list.addEventListener("mouseleave", () => pick(null));
+  return data;
+}
+
+async function legs() {
+  const data = await partList("leg-parts", "/data/legs.json");
+  if (!data) return;
+  $("leg-stages").innerHTML = data.stages
+    .map((s) => `<li><span class="when">${esc(s.when)}</span><b>${esc(s.title)}</b><span>${esc(s.text)}</span></li>`).join("");
 }
 
 async function plan() {
@@ -120,4 +128,4 @@ function research() {
 }
 
 document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === location.pathname));
-home(); parts(); arm(); plan(); research();
+home(); parts(); partList("arm-parts", "/data/arm.json"); legs(); plan(); research();

@@ -182,3 +182,8 @@ nav a.active { color: var(--text); font-weight: 600; }
   .arm-layout .arm-stage { position: static; height: 380px; }
   .arm-stage.tall { height: 440px; }
 }
+.pill.gated { color: var(--sw); border-color: color-mix(in srgb, var(--sw) 45%, var(--line)); }
+.stages { list-style: none; padding: 0; margin: 20px 0 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+.stages li { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px; display: grid; gap: 4px; }
+.stages .when { font: 500 12px "JetBrains Mono", monospace; color: var(--sw); }
+.stages li span:last-child { color: var(--muted); font-size: 14px; }

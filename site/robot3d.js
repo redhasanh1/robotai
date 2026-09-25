@@ -1,14 +1,21 @@
-// Interactive robot: the life-size InMoov humanoid (Gael Langevin's design) that robotai v1 is built on.
-// URDF from Sentience-Robotics/inmoov_urdf (GPL-3.0), xacro pre-expanded into /models/inmoov.urdf;
-// its ~290 Collada meshes stream from that repo.
+// Interactive robot viewer. data-focus picks the model and framing:
+//   (none) home: the life-size InMoov humanoid (Gael Langevin's design) that robotai v1 is built on.
+//          URDF from Sentience-Robotics/inmoov_urdf (GPL-3.0), xacro pre-expanded into /models/inmoov.urdf;
+//          its ~290 Collada meshes stream from that repo.
+//   arm    the same model, close-up on the right arm, with part highlighting.
+//   legs   Stanford's ToddlerBot (MIT), the closest open design to our servo walker, stepping in place.
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
 import URDFLoader from "urdf-loader";
 
-const URDF = "/models/inmoov.urdf";
 const el = document.getElementById("arm3d");
 const status = document.getElementById("arm3d-status");
-const ARM = el.dataset.focus === "arm"; // /arm page: close-up of the right arm with part highlighting
+const FOCUS = el.dataset.focus || "home";
+const ARM = FOCUS === "arm";
+const LEGS = FOCUS === "legs";
+const URDF = LEGS
+  ? "https://raw.githubusercontent.com/hshi74/toddlerbot/main/toddlerbot/descriptions/toddlerbot_2xc_gripper/toddlerbot_2xc_gripper.urdf"
+  : "/models/inmoov.urdf";
 
 const css = (v) => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
 const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -38,7 +45,7 @@ const repaint = (o, inHand) => {
   const c = o.userData.srcColor || o.material?.color;
   o.userData.srcColor = c;
   const isDark = c && c.r + c.g + c.b < 0.9;
-  o.userData.base = isDark ? dark : inHand && !ARM ? accent : shell;
+  o.userData.base = isDark ? dark : inHand && FOCUS === "home" ? accent : shell;
   o.material = o.userData.base;
 };
 const linkOf = (o) => { while (o && !o.isURDFLink) o = o.parent; return o?.name || ""; };
@@ -64,7 +71,15 @@ manager.onLoad = () => {
   });
   if (!robot.parent) scene.add(robot);
   robot.updateMatrixWorld(true);
-  if (ARM) {
+  if (LEGS) {
+    applyPose(0);
+    robot.updateMatrixWorld(true);
+    const box = new THREE.Box3().setFromObject(robot);
+    const c = box.getCenter(new THREE.Vector3()), size = box.getSize(new THREE.Vector3()).length();
+    controls.target.copy(c);
+    camera.position.copy(c).add(new THREE.Vector3(0.9, 0.3, 1).normalize().multiplyScalar(size * 1.5));
+    status.textContent = "The walker · 12 leg joints · drag to rotate";
+  } else if (ARM) {
     applyPose(0);
     robot.updateMatrixWorld(true);
     const box = new THREE.Box3().setFromObject(robot.links.right_shoulder_y_link);
@@ -99,6 +114,19 @@ const armPose = (t) => {
   for (const f of FINGERS) out[`i01.rightHand.${f}_link_joint`] = curl;
   return out;
 };
+// Stepping in place: legs alternate lifting, with the ankle keeping the foot flat.
+const walkPose = (t) => {
+  const out = {};
+  for (const [side, k] of [["left", 0], ["right", Math.PI]]) {
+    const lift = Math.max(0, Math.sin(t * 2.4 + k));
+    out[`${side}_hip_pitch`] = -0.45 * lift;
+    out[`${side}_knee`] = 0.9 * lift;
+    out[`${side}_ankle_pitch`] = -0.45 * lift;
+    out[`${side}_shoulder_pitch`] = 0.3 * Math.sin(t * 2.4 + k + Math.PI);
+  }
+  out.waist_yaw = 0.08 * Math.sin(t * 2.4);
+  return out;
+};
 const pose = (t) => {
   const out = {
     "i01.head.rothead_link_joint": 0.45 * Math.sin(t * 0.4),
@@ -126,7 +154,7 @@ function resize() {
 new ResizeObserver(resize).observe(el);
 
 function applyPose(t) {
-  for (const [j, v] of Object.entries((ARM ? armPose : pose)(t))) {
+  for (const [j, v] of Object.entries((LEGS ? walkPose : ARM ? armPose : pose)(t))) {
     const joint = robot.joints[j];
     if (joint) joint.setJointValue(THREE.MathUtils.clamp(v, joint.limit.lower, joint.limit.upper));
   }
@@ -139,7 +167,8 @@ window.robot3d = {
     robot.traverse((o) => {
       if (!o.isMesh || !o.userData.base) return;
       const name = linkOf(o);
-      const hit = part && ((part.links || []).includes(name) || (part.prefix && name.startsWith(part.prefix) && !(part.exclude || []).includes(name)));
+      const hit = part && !(part.exclude || []).includes(name) && ((part.links || []).includes(name)
+        || (part.prefix && name.startsWith(part.prefix)) || (part.match && new RegExp(part.match).test(name)));
       o.material = hit ? glow : o.userData.base;
     });
   },

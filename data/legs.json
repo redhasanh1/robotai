@@ -1,0 +1,58 @@
+{
+  "note": "Legs follow the week-10 gate in research/kimi_rounds/round2_kimi.md and the sizing in research/humanoid_legs.md. The 3D model is Stanford's ToddlerBot (MIT), the closest open design to our servo walker. 'links' are ToddlerBot URDF link-name prefixes.",
+  "stages": [
+    {
+      "when": "Weeks 1-10",
+      "title": "Learn to walk in simulation",
+      "text": "Train a walking policy for this exact robot in MuJoCo, starting from the ToddlerBot and Open Duck code. No hardware needed yet."
+    },
+    {
+      "when": "Week 10 gate",
+      "title": "Build the real walker",
+      "text": "If the torso build is on schedule and at least C$400 is left: a 0.62 m biped, 12 leg joints, about C$390, sharing the torso's computer and cameras."
+    },
+    {
+      "when": "v2",
+      "title": "Full-size legs",
+      "text": "Legs strong enough to carry the life-size torso need brushless actuators, around C$150-250 per joint times 12. That's the next budget."
+    }
+  ],
+  "parts": [
+    {
+      "id": "hip",
+      "name": "Hips",
+      "joints": "pitch + roll + yaw, per leg",
+      "actuator": "Hip pitch: STS3250 (50 kg·cm). Hip roll + yaw: STS3215 (30 kg·cm).",
+      "made": "Printed PETG pelvis and hip brackets",
+      "status": "gated",
+      "match": "hip"
+    },
+    {
+      "id": "knee",
+      "name": "Knees",
+      "joints": "bend",
+      "actuator": "STS3250 (the knee does the most work when walking)",
+      "made": "Printed thigh and shin",
+      "status": "gated",
+      "match": "knee"
+    },
+    {
+      "id": "ankle",
+      "name": "Ankles + feet",
+      "joints": "pitch + roll",
+      "actuator": "Ankle pitch: STS3250. Ankle roll: STS3215.",
+      "made": "Printed feet with TPU soles for grip",
+      "status": "gated",
+      "match": "ankle"
+    },
+    {
+      "id": "body",
+      "name": "Body + balance",
+      "joints": "waist + neck",
+      "actuator": "BNO085 IMU for balance, 3S LiPo battery, Waveshare bus adapter",
+      "made": "Printed torso; shares the main robot's computer and cameras",
+      "status": "gated",
+      "match": "waist|pelvis|torso"
+    }
+  ]
+}
