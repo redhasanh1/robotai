@@ -1,8 +1,17 @@
 // Renders the site from data/*.json and research/*.md.
 const DOCS = [
+  ["Cerebras thesis", "/research/cerebras_thesis.md"],
+  ["Fast-inference physical AI", "/research/physical_ai_fast_inference.md"],
+  ["Cerebras platform", "/research/cerebras_platform.md"],
   ["Physical-AI brief", "/research/physical_ai_research.md"],
   ["Kimi review", "/research/kimi_research.md"],
   ["XLeRobot BOM", "/research/xlerobot_official_bom.md"],
+];
+
+// What the robot is for. "now" = targeted in the 16-week build, "next" = after it.
+const JOBS = [
+  ["Cooking prep", "now"], ["Tidying up", "now"], ["Fetching things", "now"],
+  ["Wiping surfaces", "next"], ["Laundry", "next"], ["Walking the dog", "next"],
 ];
 
 const $ = (id) => document.getElementById(id);
@@ -36,6 +45,7 @@ async function load() {
   ].map(([v, k]) => `<div class="stat"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
 
   renderPlan(road);
+  $("jobs").innerHTML = JOBS.map(([j, w]) => `<li class="${w}">${esc(j)}<span>${w === "now" ? "16-week build" : "next"}</span></li>`).join("");
 
   $("parts-updated").textContent = `Prices checked on the linked pages on ${bom.updated}. They change, so re-check before ordering.`;
   $("p1-title").textContent = p1.title;

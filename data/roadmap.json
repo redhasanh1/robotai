@@ -8,7 +8,7 @@
     {
       "weeks": "1-2",
       "hardware": { "title": "Order + print", "text": "Parts ordered, hands and arm parts printing", "done": false, "image": "" },
-      "software": { "title": "Stack up", "text": "LeRobot, sim, Cerebras API hello-world", "done": false, "image": "" }
+      "software": { "title": "Stack up", "text": "LeRobot, sim, measure Cerebras latency from Toronto", "done": false, "image": "" }
     },
     {
       "weeks": "3-4",
@@ -38,7 +38,7 @@
     {
       "weeks": "13-14",
       "hardware": { "title": "Kitchen rig", "text": "Counter setup, fixtures, fixes", "done": false, "image": "" },
-      "software": { "title": "Fast-inference unlock", "text": "The thing only Cerebras speed makes possible", "done": false, "image": "" }
+      "software": { "title": "Cerebras unlock", "text": "30B verifier picks the best of 16 moves, 7-10x a second", "done": false, "image": "" }
     },
     {
       "weeks": "15-16",

@@ -64,12 +64,17 @@ h3 { font-size: 16px; margin: 32px 0 10px; }
 .lede { font-size: 18px; color: var(--muted); max-width: 60ch; margin: 0; }
 .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; border-bottom: 1px solid var(--line); padding-bottom: 10px; }
 
+.jobs { list-style: none; padding: 0; margin: 24px 0 0; display: flex; flex-wrap: wrap; gap: 8px; }
+.jobs li { font-size: 14px; font-weight: 500; padding: 6px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--surface); display: flex; gap: 8px; align-items: center; }
+.jobs li span { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.jobs li.now { border-color: color-mix(in srgb, var(--sw) 45%, var(--line)); }
+.jobs li.now span { color: var(--sw); }
 .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; margin-top: 32px; }
 .stat { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
 .stat .v { font-size: 26px; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .stat .k { font-size: 13px; color: var(--muted); }
 
-.arm-stage { position: relative; height: 380px; border-radius: 16px; overflow: hidden; background: radial-gradient(ellipse at 50% 60%, var(--accent-soft), transparent 70%), var(--surface); border: 1px solid var(--line); cursor: grab; }
+.arm-stage { position: relative; height: 460px; border-radius: 16px; overflow: hidden; background: radial-gradient(ellipse at 50% 60%, var(--accent-soft), transparent 70%), var(--surface); border: 1px solid var(--line); cursor: grab; }
 .arm-stage canvas { display: block; width: 100%; height: 100%; }
 .arm-status { position: absolute; left: 16px; bottom: 12px; font-size: 13px; color: var(--muted); pointer-events: none; }
 

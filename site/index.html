@@ -25,13 +25,14 @@
 
 <main class="wrap">
   <section class="hero">
-    <h1>An AI home-helper robot, built by students in 16 weeks.</h1>
-    <p class="lede">Two 3D-printed robotic hands, then a two-arm mobile robot that learns chores from demonstrations. A fast multimodal model on Cerebras does the planning.</p>
+    <h1>A robot that runs your home.</h1>
+    <p class="lede">A two-armed mobile robot that cooks, cleans, tidies and fetches, and one day walks the dog. It learns chores from demonstrations, and a fast multimodal model on Cerebras does the thinking. Built by students in Toronto.</p>
+    <ul class="jobs" id="jobs"></ul>
     <div class="stats" id="stats"></div>
   </section>
 
   <section id="robot">
-    <div class="arm-stage" id="arm3d"><span class="arm-status" id="arm3d-status">Loading 3D arm…</span></div>
+    <div class="arm-stage" id="arm3d"><span class="arm-status" id="arm3d-status">Loading the robot…</span></div>
   </section>
 
   <section id="plan">
@@ -86,7 +87,7 @@
   "urdf-loader": "https://cdn.jsdelivr.net/npm/urdf-loader@0.12.3/src/URDFLoader.js"
 } }
 </script>
-<script type="module" src="/arm3d.js"></script>
+<script type="module" src="/robot3d.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked@12/marked.min.js"></script>
 <script src="/app.js"></script>
 </body>
