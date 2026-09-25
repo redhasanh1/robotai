@@ -180,26 +180,30 @@ def build():
     # ---------------- Phase 2 ----------------
     wp = wb.create_sheet("Phase 2 - Full robot")
     setup(wp)
-    wp["A1"] = "Phase 2 - bimanual mobile robot (XLeRobot-style), PRICES IN USD"
+    P2CUR = DATA["phase2"].get("currency", "USD")
+    wp["A1"] = DATA["phase2"]["title"] + f" - prices in {P2CUR}"
     wp["A1"].font = title
-    wp["A2"] = ("From research/physical_ai_research.md s.6. Separate from the $500 CAD hands budget. "
-                "Prices from vendor pages/coverage on 2026-09-25.")
+    wp["A2"] = " ".join(DATA["phase2"].get("notes", [])) or "Separate from the $500 CAD hands budget."
     wp["A2"].font = Font(name="Arial", size=9, italic=True)
     wp["C3"] = "USD->CAD rate (assumed, verify)"
     wp["C3"].font = bold
     wp["D3"] = DATA["usd_to_cad"]
     wp["D3"].font = input_font
-    p_cols = ["Item", "Product / Vendor", "Link", "Unit Price (USD)", "Quantity", "Line Total (USD)", "Notes/Rationale"]
+    p_cols = ["Item", "Product / Vendor", "Link", f"Unit Price ({P2CUR})", "Quantity", f"Line Total ({P2CUR})", "Notes/Rationale"]
     header(wp, 5, p_cols)
     r = 6
     for rec in PHASE2:
         row(wp, r, rec)
-        wp.cell(r, 4).number_format = '"US$"#,##0.00'
-        wp.cell(r, 6).number_format = '"US$"#,##0.00'
+        if P2CUR == "USD":
+            wp.cell(r, 4).number_format = '"US$"#,##0.00'
+            wp.cell(r, 6).number_format = '"US$"#,##0.00'
         r += 1
-    label_value(wp, r, "Phase 2 subtotal (USD, pre-tax/shipping)", f"=SUM(F6:F{r-1})", tot_fill,
-                fmt='"US$"#,##0.00'); r += 1
-    label_value(wp, r, "Phase 2 subtotal (CAD, approx.)", f"=F{r-1}*$D$3", tot_fill); r += 2
+    if P2CUR == "USD":
+        label_value(wp, r, "Phase 2 subtotal (USD, pre-tax/shipping)", f"=SUM(F6:F{r-1})", tot_fill, fmt='"US$"#,##0.00'); r += 1
+        label_value(wp, r, "Phase 2 subtotal (CAD, approx.)", f"=F{r-1}*$D$3", tot_fill); r += 2
+    else:
+        label_value(wp, r, "Phase 2 subtotal (CAD, pre-tax/shipping)", f"=SUM(F6:F{r-1})", tot_fill); r += 1
+        label_value(wp, r, "Under the C$1,500 budget by", f"=1500-F{r-1}", tot_fill); r += 2
     wp.cell(r, 1, ("Cerebras = System-2 brain (planner, voice, replanning, success checks) in the cloud; "
                    "ACT/SmolVLA motor policy runs locally at 30-50 Hz. See research brief.")).font = base
 

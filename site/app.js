@@ -60,10 +60,10 @@ async function parts() {
   table($("p1-opt"), p1.optional, "CAD", [["With sensors, incl. tax", money((core + opt) * (1 + bom.tax_rate)), "total"]]);
   table($("p1-alt"), p1.alternatives, "CAD");
   $("p2-title").textContent = p2.title;
-  table($("p2"), p2.items, "USD", [
-    ["Subtotal", money(p2usd, "USD"), "sub"],
-    [`≈ CAD at ${bom.usd_to_cad}`, money(p2usd * bom.usd_to_cad), "total"],
-  ]);
+  const cur2 = p2.currency || "USD";
+  table($("p2"), p2.items, cur2, cur2 === "CAD"
+    ? [["Subtotal", money(p2usd), "sub"], [`Under the $1,500 budget by`, money(1500 - p2usd), "total"]]
+    : [["Subtotal", money(p2usd, "USD"), "sub"], [`≈ CAD at ${bom.usd_to_cad}`, money(p2usd * bom.usd_to_cad), "total"]]);
 }
 
 // Part list next to a 3D view: pointing at a part lights it up in the model.

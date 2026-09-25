@@ -230,49 +230,158 @@
     ]
   },
   "phase2": {
-    "title": "Phase 2 - Mobile two-arm robot (draft, being refined by Kimi)",
-    "currency": "USD",
+    "title": "Phase 2 - Life-size humanoid v1 (torso + arms on a wheeled base), Kimi round 3",
+    "currency": "CAD",
     "items": [
       {
-        "item": "SO-ARM101 Pro motor kit (leader+follower servos, driver, cables)",
-        "product": "Seeed Studio",
-        "url": "https://www.seeedstudio.com/SO-101-Low-Cost-AI-Arm-Kit-Pro-p-6427.html",
-        "price": 249.9,
-        "qty": 2,
-        "notes": "Core arm. 2 kits = bimanual. STS3215 bus servos. LeRobot-native."
+        "item": "Shoulder pitch + roll motors (x4)",
+        "product": "NFP 5840-31ZY-EN 12V worm motor, 1000:1, hall encoder",
+        "url": "https://nfpmotor.com/12v-24v-dc-permanent-magnet-dc-turbo-worm-reduction-motor-model-nfp-5840-31zy",
+        "price": 79.0,
+        "qty": 4,
+        "notes": "100 kg-cm rated (1.4x margin on 71 kg-cm needed), ~2.5 s per 90 deg, self-locking so arms hold without power. AliExpress regular price C$79 (C$30 promo is 1 per customer). Buy 1 first and bench-test."
       },
       {
-        "item": "SO-101 printed parts",
-        "product": "Seeed Studio (or print yourself = $0)",
-        "url": "https://www.seeedstudio.com/SO-101-Low-Cost-AI-Arm-Kit-Pro-p-6427.html",
-        "price": 0,
-        "qty": 2,
-        "notes": "3D printing is covered, so $0. Seeed sells printed sets at $29.90 if needed."
+        "item": "Shoulder yaw + elbow motors (x4)",
+        "product": "NFP 5840-31ZY-EN 12V worm motor, 500:1, hall encoder",
+        "url": "https://microdcmotors.com/product/12v-24v-high-torque-low-speed-dc-motor-with-encoder-self-locking-model-nfp-5840-31zy-en",
+        "price": 79.0,
+        "qty": 4,
+        "notes": "70 kg-cm rated; elbow needs ~44 (1.6x), yaw ~25 (2.8x); ~1.25 s per 90 deg. Order after the week-1 bench test passes."
       },
       {
-        "item": "Mobile base (LeKiwi base, or DIY XLeRobot IKEA cart)",
-        "product": "AIFITLAB LeKiwi",
-        "url": "https://aifitlab.com/products/lerobot-lekiwi-low-cost-mobile-manipulator",
-        "price": 260.0,
+        "item": "Wrist x2, neck x2, 2 spares",
+        "product": "Feetech STS3215 12V 30 kg-cm bus servo, 6-pack (official store)",
+        "url": "https://www.aliexpress.com/item/1005008670304643.html",
+        "price": 166.42,
         "qty": 1,
-        "notes": "'from $260'. XLeRobot full BOM ~$660 incl. arms: https://github.com/Vector-Wangel/XLeRobot"
+        "notes": "C$160.99 + C$5.43 shipping, 4.9 stars, 232 sold. Checked on the page."
       },
       {
-        "item": "USB cameras (head + 2 wrist)",
-        "product": "Seeed X10 USB camera",
-        "url": "https://www.seeedstudio.com/LeKiwi-Full-Kit-12V-Verision.html",
+        "item": "Drive base",
+        "product": "Used hoverboard (2x 350 W hub motors + 36 V pack)",
+        "url": "https://www.kijiji.ca/b-city-of-toronto/hoverboard/k0c170l1700273",
+        "price": 120.0,
+        "qty": 1,
+        "notes": "C$50-150 on Kijiji Toronto (43 ads). Open it before paying: single mainboard with STM32F103RCT6/RET6 or GD32F103RCT6 only; walk away from AT32F403/413 boards. Runs EFeru FOC firmware (free)."
+      },
+      {
+        "item": "Base power converter",
+        "product": "DC-DC buck 30-60 V in -> 12 V, 15 A+",
+        "url": "https://www.amazon.ca/",
+        "price": 40.0,
+        "qty": 1,
+        "notes": "Estimate C$35-45. Must accept 42 V (a 36 V pack charges to 42 V), so an 18-36 V input unit will fail."
+      },
+      {
+        "item": "Casters (x2)",
+        "product": "2 in swivel casters",
+        "url": "https://www.amazon.ca/",
+        "price": 20.0,
+        "qty": 1,
+        "notes": "Estimate. Stabilize the tall torso on the hoverboard base."
+      },
+      {
+        "item": "Safety + power wiring",
+        "product": "E-stop button, fuses, XT60 connectors, 14 AWG wire",
+        "url": "https://www.amazon.ca/",
+        "price": 30.0,
+        "qty": 1,
+        "notes": "Estimate. Non-negotiable for a 1.8 m robot on wheels."
+      },
+      {
+        "item": "Motor drivers (x8)",
+        "product": "BTS7960 43 A H-bridge",
+        "url": "https://www.universal-solder.ca/product/dual-bts7960-h-bridge-dc-motor-driver-max-43a/",
+        "price": 7.19,
+        "qty": 8,
+        "notes": "C$7.99, C$7.19 each at qty 3-9, in stock in Canada (Universal-Solder). Checked on the page."
+      },
+      {
+        "item": "Joint angle sensors (x8)",
+        "product": "AS5600 magnetic encoder module",
+        "url": "https://www.aliexpress.com/w/wholesale-as5600-module.html",
+        "price": 3.39,
+        "qty": 8,
+        "notes": "Absolute angle on each worm-motor output shaft. Search-page price."
+      },
+      {
+        "item": "Servo bus adapters (x2)",
+        "product": "Waveshare Bus Servo Adapter (A)",
+        "url": "https://www.waveshare.com/bus-servo-adapter-a.htm",
+        "price": 6.99,
+        "qty": 2,
+        "notes": "US$4.99 on waveshare.com; Canada shipping not checked."
+      },
+      {
+        "item": "Head camera",
+        "product": "EMEET C960 1080p webcam",
+        "url": "https://www.amazon.ca/dp/B07M6Y7355",
+        "price": 34.99,
+        "qty": 1,
+        "notes": "4.4 stars, 32.5K ratings."
+      },
+      {
+        "item": "Wrist cameras (x2)",
+        "product": "1080p UVC wide-angle camera module",
+        "url": "https://www.aliexpress.com/w/wholesale-wide-angle-usb-camera.html",
         "price": 12.0,
-        "qty": 3,
-        "notes": "Listed as LeKiwi add-on."
+        "qty": 2,
+        "notes": "Estimate. Can wait until week 3."
       },
       {
-        "item": "On-robot compute",
-        "product": "NVIDIA Jetson Orin Nano Super Dev Kit",
-        "url": "https://jetsonhacks.com/2024/12/17/jetson-orin-nano-super-developer-kit/",
-        "price": 249.0,
+        "item": "Balance / motion sensor",
+        "product": "BNO085 9-axis IMU (clone)",
+        "url": "https://www.aliexpress.com/w/wholesale-bno085.html",
+        "price": 17.58,
         "qty": 1,
-        "notes": "Runs ACT/SmolVLA locally. Skip and use a laptop to save $249."
+        "notes": "Adafruit original is C$33-40."
+      },
+      {
+        "item": "Servo cables (x2 packs)",
+        "product": "5264 3-pin bus servo cable, 10-pack",
+        "url": "https://www.aliexpress.com/item/1005008074862037.html",
+        "price": 6.72,
+        "qty": 2,
+        "notes": "+ ~C$8 shipping."
+      },
+      {
+        "item": "Powered USB hub",
+        "product": "7-port powered USB 3.0 hub (TP-Link UH700 class)",
+        "url": "https://www.amazon.ca/dp/B00OTK16FK",
+        "price": 65.0,
+        "qty": 1,
+        "notes": "Checked: C$59-71 for reputable hubs."
+      },
+      {
+        "item": "Hardware",
+        "product": "M2/M3/M4 screw kit + 100 M3 heat-set inserts",
+        "url": "https://www.amazon.ca/",
+        "price": 27.0,
+        "qty": 1,
+        "notes": "LuKaiSen kit C$15.99 + HANGLIFE inserts C$10.99."
+      },
+      {
+        "item": "Work stand clamps",
+        "product": "WEN CLC424 C-clamps, 2-pack",
+        "url": "https://www.amazon.ca/dp/B08SQFT9TW",
+        "price": 17.44,
+        "qty": 1,
+        "notes": "Holds the torso on the bench during arm bring-up."
+      },
+      {
+        "item": "Wire + connectors",
+        "product": "Assorted wire, JST/Dupont, heat shrink",
+        "url": "https://www.amazon.ca/",
+        "price": 35.0,
+        "qty": 1,
+        "notes": "Estimate."
       }
+    ],
+    "notes": [
+      "Total C$1,341.49 pre-tax vs the C$1,500 budget (C$158.51 buffer). Compute is the owner's laptop (Pi Zero 2 W is out of stock in Canada).",
+      "Week 1: buy ONE 1000:1 and ONE 500:1 motor and bench-test them (torque 80 kg-cm, backlash <= 1.5 deg, self-lock < 1 deg, < 60 C) before ordering the other six.",
+      "Legs gate at week 10: two more STS3215 6-packs + 3S LiPo (~C$388) for the small walker; needs trims of ~C$229 from the buffer."
     ]
   }
 }
