@@ -27,17 +27,23 @@
 <main class="wrap">
   <section class="page-head">
     <h1>The legs</h1>
-    <p class="lede">The InMoov gets legs in three stages. It learns to walk in simulation first, a small real walker proves the code at week 10, and full-size legs go under the InMoov in v2. The legs shown are that v2 concept, based on the open Berkeley Humanoid Lite design scaled to InMoov size. Point at a part to light it up.</p>
+    <p class="lede">Our own leg design for the InMoov, built for running, jumping, boxing footwork and backflips: human proportions, big drives at the hip and knee, and ankle drives hidden in the calf so the lower leg stays light. Try the moves, and point at a part to light it up.</p>
     <ol class="stages" id="leg-stages"></ol>
   </section>
   <section class="arm-layout">
     <div class="arm-stage" id="arm3d" data-focus="legs"><span class="arm-status" id="arm3d-status">Loading the walker…</span></div>
+    <div class="moves" role="group" aria-label="Moves">
+      <button data-move="walk" aria-pressed="true">Walk</button>
+      <button data-move="run">Run</button>
+      <button data-move="box">Box</button>
+      <button data-move="backflip">Backflip</button>
+    </div>
     <ol class="arm-parts" id="leg-parts"></ol>
   </section>
   <p class="muted legend"><span class="pill gated">gated</span> bought at the week-10 go/no-go · everything structural is printed at school</p>
 </main>
 
-<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a></footer>
+<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a><br>Credits: InMoov by Gael Langevin (inmoov.fr) · InMoov URDF by Sentience Robotics (GPL-3.0) · legs designed by robotai in Blender</footer>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",

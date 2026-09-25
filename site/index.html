@@ -33,6 +33,12 @@
 
   <section id="robot">
     <div class="arm-stage tall" id="arm3d"><span class="arm-status" id="arm3d-status">Loading the robot…</span></div>
+    <div class="moves" role="group" aria-label="Moves">
+      <button data-move="walk" aria-pressed="true">Walk</button>
+      <button data-move="run">Run</button>
+      <button data-move="box">Box</button>
+      <button data-move="backflip">Backflip</button>
+    </div>
   </section>
 
   <section>
@@ -47,7 +53,7 @@
   </section>
 </main>
 
-<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a></footer>
+<footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a><br>Credits: InMoov by Gael Langevin (inmoov.fr) · InMoov URDF by Sentience Robotics (GPL-3.0) · legs designed by robotai in Blender</footer>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",

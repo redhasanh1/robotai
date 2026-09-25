@@ -1,5 +1,5 @@
 {
-  "note": "Leg plan per research/humanoid_legs.md and Kimi round 2/3. The 3D legs are the Berkeley Humanoid Lite biped (CC-BY-SA-4.0) scaled to InMoov size: the v2 full-size concept. Kimi is researching InMoov-specific leg designs. 'match' is a regex on URDF link names.",
+  "note": "Legs v1 are robotai's own design (cad/legs_v1.py, Blender), built for dynamic moves: 7 joints per leg, big drives at hip and knee, ankle drives in the calf with push rods. 'match' is a regex on part / joint names in the GLB.",
   "stages": [
     {
       "when": "Weeks 1-10",
@@ -13,46 +13,55 @@
     },
     {
       "when": "v2",
-      "title": "Full-size legs under the InMoov",
-      "text": "The legs shown here: 12 brushless joints strong enough to carry the ~9 kg InMoov upper body, around C$150-250 per joint. That's the next budget."
+      "title": "Dynamic full-size legs",
+      "text": "The legs shown: brushless quasi-direct-drive joints strong enough to run, jump and flip with the ~9 kg InMoov upper body, roughly C$200-400 per joint. That's the next budget."
     }
   ],
   "parts": [
     {
       "id": "hip",
       "name": "Hips",
-      "joints": "pitch + roll + yaw, per leg",
-      "actuator": "Full-size (shown): brushless actuator + printed cycloidal gearbox per joint. Small walker: STS3250 pitch, STS3215 roll/yaw.",
-      "made": "Printed PETG pelvis and hip brackets",
-      "status": "gated",
-      "match": "hip"
+      "joints": "yaw + roll + pitch, per leg",
+      "match": "hip",
+      "actuator": "3 brushless drives per hip; the pitch drive is the biggest, it powers jumps and kicks",
+      "made": "Printed pelvis and hip brackets",
+      "status": "gated"
     },
     {
       "id": "knee",
-      "name": "Knees",
+      "name": "Thigh + knee",
       "joints": "bend",
-      "actuator": "Full-size: brushless + cycloidal (the knee carries the most load). Small walker: STS3250.",
-      "made": "Printed thigh and shin",
-      "status": "gated",
-      "match": "knee"
+      "match": "thigh|knee",
+      "actuator": "Brushless knee drive with a printed low-backlash gearbox; kneecap shell protects it",
+      "made": "Printed muscle-shaped thigh shell",
+      "status": "gated"
     },
     {
-      "id": "ankle",
-      "name": "Ankles + feet",
-      "joints": "pitch + roll",
-      "actuator": "Full-size: brushless + cycloidal. Small walker: STS3250 pitch, STS3215 roll.",
-      "made": "Printed feet with TPU soles for grip",
-      "status": "gated",
-      "match": "ankle"
+      "id": "calf",
+      "name": "Calf + ankle drives",
+      "joints": "ankle pitch + roll",
+      "match": "calf|ankle",
+      "actuator": "Two drives sit high in the calf and push the foot through rods, so the lower leg stays light for fast swings",
+      "made": "Printed calf shell, carbon push rods",
+      "status": "gated"
     },
     {
-      "id": "body",
-      "name": "Pelvis + balance",
-      "joints": "hip mount",
-      "actuator": "BNO085 IMU for balance, battery, motor drivers; bolts under the InMoov torso",
-      "made": "Printed torso; shares the main robot's computer and cameras",
-      "status": "gated",
-      "match": "^base$|imu"
+      "id": "foot",
+      "name": "Foot + toe",
+      "joints": "toe bend",
+      "match": "foot|sole|toe",
+      "actuator": "Toe joint for push-off when running and jumping",
+      "made": "Printed foot, TPU rubber sole",
+      "status": "gated"
+    },
+    {
+      "id": "pelvis",
+      "name": "Pelvis",
+      "joints": "waist mount",
+      "match": "pelvis",
+      "actuator": "Bolts under the InMoov torso; IMU for balance lives here",
+      "made": "Printed pelvis box",
+      "status": "gated"
     }
   ]
 }

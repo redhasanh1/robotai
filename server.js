@@ -19,6 +19,7 @@ const TYPES = {
   ".jpeg": "image/jpeg",
   ".webp": "image/webp",
   ".gif": "image/gif",
+  ".glb": "model/gltf-binary",
   ".urdf": "application/xml; charset=utf-8",
   ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 };
@@ -32,7 +33,7 @@ function resolve(urlPath) {
   if (p === "/robotai_BOM.xlsx") return path.join(ROOT, "robotai_BOM.xlsx");
   if (/^\/data\/[\w-]+\.json$/.test(p)) return path.join(ROOT, p);
   if (/^\/research\/[\w-]+\.md$/.test(p)) return path.join(ROOT, p);
-  if (/^\/models\/[\w.-]+\.urdf$/.test(p)) return path.join(ROOT, "site", p);
+  if (/^\/models\/[\w.-]+\.(urdf|glb)$/.test(p)) return path.join(ROOT, "site", p);
   if (/^\/img\/[\w.-]+\.(png|jpe?g|webp|gif|svg)$/.test(p)) return path.join(ROOT, "site", p);
   if (/^\/[\w-]+\.(css|js|svg|png|jpg)$/.test(p)) return path.join(ROOT, "site", p);
   return null;

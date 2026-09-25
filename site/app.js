@@ -128,4 +128,8 @@ function research() {
 }
 
 document.querySelectorAll("nav a").forEach((a) => a.classList.toggle("active", a.getAttribute("href") === location.pathname));
+document.querySelectorAll(".moves button").forEach((b) => b.addEventListener("click", () => {
+  document.querySelectorAll(".moves button").forEach((x) => x.setAttribute("aria-pressed", x === b));
+  window.robot3d_setMove?.(b.dataset.move);
+}));
 home(); parts(); partList("arm-parts", "/data/arm.json"); legs(); plan(); research();
