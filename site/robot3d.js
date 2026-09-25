@@ -116,6 +116,7 @@ function mountLegs() {
   pivot.position.set(0, 0, 0);
   rig.position.set(0, 0, 0);
   rig.rotation.set(0, 0, 0);
+  pivot.rotation.set(0, 0, 0);
   scene.updateMatrixWorld(true);
   const hip = body.links.torso_bottom_link.getWorldPosition(new THREE.Vector3());
   legs.position.copy(hip).add(new THREE.Vector3(0, -0.02, 0));
@@ -197,6 +198,7 @@ const smooth = (x) => x * x * (3 - 2 * x);
 function legMotion(t) {
   const T = t - moveStart;
   rig.rotation.set(0, 0, 0);
+  pivot.rotation.set(0, 0, 0);
   pivot.position.y = hipHeight;
   if (move === "run") {
     for (const [side, k] of [["left", 0], ["right", Math.PI]]) {
@@ -208,7 +210,7 @@ function legMotion(t) {
     leg("left", -0.45, 0.6, -0.15, 0.05);   // lead leg forward
     leg("right", 0.1, 0.45, -0.35, -0.05, 0.35); // rear leg back, on the ball of the foot
     pivot.position.y = hipHeight - 0.06 + 0.02 * Math.sin(T * 5);
-    rig.rotation.y = -0.35;                  // bladed stance
+    pivot.rotation.y = -0.35;                  // bladed stance
   } else if (move === "backflip") {
     const u0 = T % 2.6;
     let crouch = 0, tuck = 0, spin = 0, lift = 0;
@@ -218,7 +220,7 @@ function legMotion(t) {
     const bend = Math.max(crouch * 0.9, tuck * 1.6);
     for (const side of ["left", "right"]) leg(side, -bend * 0.8, bend * 1.4, -bend * 0.5);
     pivot.position.y = hipHeight - crouch * 0.2 + lift;
-    rig.rotation.x = -2 * Math.PI * spin;                                      // full backward rotation
+    pivot.rotation.x = -2 * Math.PI * spin;                                      // full backward rotation
   } else {
     for (const [side, k] of [["left", 0], ["right", Math.PI]]) {
       const ph = T * 2.4 + k;
