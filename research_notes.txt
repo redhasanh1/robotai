@@ -44,7 +44,8 @@ CONFIRMED REAL RESEARCH SO FAR
    - Freenove ESP32-S3 Dev Board Kit (8MB Flash, 2 Pack) - $31.95 CAD (newer
      S3 variant, more expensive, probably unnecessary for this project)
 
-STILL NEEDED (NOT YET RESEARCHED WITH REAL LINKS/PRICES)
+STATUS 2026-09-25: ALL ITEMS BELOW NOW RESEARCHED -> see robotai_BOM.xlsx
+(was: STILL NEEDED)
 -----------------------------------------------------------
 - Finger servo motors x10 (5 per hand) - need to compare a cheap plastic-gear
   option (e.g. SG90/MG90S) vs a sturdier metal-gear option (e.g. MG996R),
@@ -73,3 +74,18 @@ GITHUB
 ------
 Repo already created: https://github.com/redhasanh1/robotai
 (README + description set, this file being pushed to the repo root)
+
+BOM RESULT (2026-09-25) - robotai_BOM.xlsx
+------------------------------------------
+Core (10 lines, all verified on Amazon.ca product/search pages):
+  Freenove ESP32 2-pack 27.95 | Deegoo MG996R 4-pack x3 105.66 |
+  HiLetgo PCA9685 2-pack 24.14 | SHNITPWR 10A adj PSU x2 73.98 |
+  barrel->screw adapters 11.99 | HERCULES 50lb PE braid 16.99 |
+  Swpeet 150pc springs 20.99 | ELEGOO dupont 12.99 |
+  servo extensions 8.27 | 18AWG silicone wire 13.44
+  = $316.40 pre-tax, ~$357.53 with 13% HST -> UNDER $500 (headroom ~$142)
+Optional: 2x genuine Interlink FSR402 (DigiKey.ca) $20.86 -> $381.10 w/ tax.
+  Even 10x FSR402 ($90.19) keeps it under $500 w/ tax ($459.45).
+Budget servo tier: Miuzei MG90S 10-pack $39.99 (2 kg-cm, needs remixed forearm).
+Rebuild the sheet: python tools/build_bom.py
+Physical-AI / full-robot research: research/physical_ai_research.md
