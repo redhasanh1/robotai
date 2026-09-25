@@ -203,6 +203,7 @@ def build():
         label_value(wp, r, "Phase 2 subtotal (CAD, approx.)", f"=F{r-1}*$D$3", tot_fill); r += 2
     else:
         label_value(wp, r, "Phase 2 subtotal (CAD, pre-tax/shipping)", f"=SUM(F6:F{r-1})", tot_fill); r += 1
+        label_value(wp, r, "Whole v1 incl. the hands cart (Phase 1 core)", f"=F{r-1}+BOM!F{17}", tot_fill); r += 1
         label_value(wp, r, "Under the C$1,500 budget by", f"=1500-F{r-1}", tot_fill); r += 2
     wp.cell(r, 1, ("Cerebras = System-2 brain (planner, voice, replanning, success checks) in the cloud; "
                    "ACT/SmolVLA motor policy runs locally at 30-50 Hz. See research brief.")).font = base

@@ -230,32 +230,88 @@
     ]
   },
   "phase2": {
-    "title": "Phase 2 - Life-size humanoid v1 (torso + arms on a wheeled base), Kimi round 3",
+    "title": "Phase 2 - Life-size InMoov humanoid v1 (both arms on stock InMoov STLs + wheeled base)",
     "currency": "CAD",
     "items": [
       {
-        "item": "Shoulder pitch + roll motors (x4)",
-        "product": "NFP 5840-31ZY-EN 12V worm motor, 1000:1, hall encoder",
-        "url": "https://nfpmotor.com/12v-24v-dc-permanent-magnet-dc-turbo-worm-reduction-motor-model-nfp-5840-31zy",
-        "price": 79.0,
-        "qty": 4,
-        "notes": "100 kg-cm rated (1.4x margin on 71 kg-cm needed), ~2.5 s per 90 deg, self-locking so arms hold without power. AliExpress regular price C$79 (C$30 promo is 1 per customer). Buy 1 first and bench-test."
+        "item": "ARM: Big arm servos (omoplate, shoulder, rotate, bicep x 2 arms)",
+        "product": "DS5160 SSG 60 kg HV digital servo, 180deg variant (RC Toys Upgrade Haven Store, 4.9 stars, 471 sold)",
+        "url": "https://www.aliexpress.com/item/1005005676958064.html",
+        "price": 32.84,
+        "qty": 8,
+        "notes": "ALIEXPRESS, FLAGGED: Amazon.ca DS5160 listings are C$50-57 each (one visible at C$56.75), so 8 of them would take C$400-450 of the C$500 cap. AliExpress shows free shipping. Pick the 180deg variant, not 270. 58 kg-cm at 6 V / 70 kg-cm at 8.4 V, about 2.5x an HS-805BB. The price could be a first-order deal, so re-check it in the cart. Amazon.ca fallback: ANNIMOS 60KG B07KTSCN4J (194 ratings), ZOSKAY B07K48FQ1N (85), 2-pack B09JGBW9KZ. [verified-on-page (AliExpress item page, C$32.84, free shipping)]"
       },
       {
-        "item": "Shoulder yaw + elbow motors (x4)",
-        "product": "NFP 5840-31ZY-EN 12V worm motor, 500:1, hall encoder",
-        "url": "https://microdcmotors.com/product/12v-24v-high-torque-low-speed-dc-motor-with-encoder-self-locking-model-nfp-5840-31zy-en",
-        "price": 79.0,
-        "qty": 4,
-        "notes": "70 kg-cm rated; elbow needs ~44 (1.6x), yaw ~25 (2.8x); ~1.25 s per 90 deg. Order after the week-1 bench test passes."
+        "item": "ARM: Arm servo power (one per arm, set to 7.4 V)",
+        "product": "SHNITPWR 3.5-12V adjustable 12A 144W PSU",
+        "url": "https://www.amazon.ca/dp/B0CKXW6ZCJ",
+        "price": 36.79,
+        "qty": 2,
+        "notes": "Same family as the hand PSUs you already own. Each one runs the 4 big servos of one arm. The worm joints hold their position with the power off, so only 1-2 servos load up at a time. Gael runs a single 6 V 40-60 A supply for the whole robot; splitting per arm means one supply can't brown out the whole robot. Alternative: Aclorol 5V 60A B07KC3KSHP at C$51.38 (verified on the search page), but it only reaches about 5.5 V. [price from the existing bom.json alternatives (earlier check), not re-verified today because Amazon.ca hides prices on a Santa Clara address]"
       },
       {
-        "item": "Wrist x2, neck x2, 2 spares",
+        "item": "ARM: M3/M4 countersunk bolts + nuts",
+        "product": "DYWISHKEY 500pcs M3 M4 M5 304 stainless flat-head countersunk socket cap screws + nuts",
+        "url": "https://www.amazon.ca/dp/B08QD6TT2N",
+        "price": 35.47,
+        "qty": 1,
+        "notes": "InMoov BOM calls for about 50x M3x20 and 50x M4x20 countersunk, plus M3 nuts. Check the kit goes up to 20 mm (the thesis lists 3 mm screws at 12/20/30/35 mm). This overlaps the phase2 'Hardware' line (LuKaiSen kit C$15.99); you can drop that kit's screws and keep only the heat-set inserts. [verified on the Amazon.ca search results page (C$35.47, 55 ratings)]"
+      },
+      {
+        "item": "ARM: Spare 10k pots for the pot-relocation mod",
+        "product": "uxcell WH148 10K rotary potentiometer, 10 pcs",
+        "url": "https://www.amazon.ca/dp/B07JM62B3Q",
+        "price": 13.99,
+        "qty": 1,
+        "notes": "The first choice is to reuse each servo's own pot on an extension lead (Gael: cut the wires and splice in length, don't desolder at the PCB). Builders break these pots by over-rotating them, so spares are needed. The pot works as a voltage divider, so a 10k pot replacing a ~5k pot still works. Gael uses round pots (PivPotentioRound) and a square version exists; a WH148 needs a holder like Thingiverse thing:6923985 (shoulder, metal linear pot) or thing:1464929 (bicep, square pot). The listing title says 'Dual'; if it turns out to be dual-gang, use one gang. [verified on the Amazon.ca search results page (C$13.99); single vs dual gang not confirmed]"
+      },
+      {
+        "item": "ARM: 6 mm BBs for the shoulder/rotate ball races",
+        "product": "Lancer Tactical 0.20 g 6 mm BBs, 4000-round bag",
+        "url": "https://www.amazon.ca/dp/B00HC1U0LO",
+        "price": 13.0,
+        "qty": 1,
+        "notes": "Per arm: PivCenter 27 + PivMit 31 + RotCenter 27 + RotMit 31 = 116 balls, so 232 for both arms. The classic InMoov arm needs no other ball bearings. Gael warns that some greases dissolve plastic BBs, so use PTFE/silicone grease only. Canadian Tire sells the same BBs for about the same price. [estimate (Amazon.ca hides the price for this delivery address)]"
+      },
+      {
+        "item": "ARM: Servo extension leads (pot relocation + reaching the PCA9685)",
+        "product": "10pc 30cm 3-pin servo extension cable (JR, F-M)",
+        "url": "https://www.amazon.ca/dp/B09VGDJ6Z8",
+        "price": 8.27,
+        "qty": 2,
+        "notes": "3 relocated pots per arm need 25-35 cm leads, plus the 8 big servos need to reach the controller. Same SKU as the phase1 cart. [price from phase1 bom.json (earlier check)]"
+      },
+      {
+        "item": "ARM: Servo mounting wood screws",
+        "product": "Self-tapping screw assortment incl. M3x12 and 3.5x16 mm (4 per big servo)",
+        "url": "https://www.amazon.ca/s?k=self+tapping+screw+assortment+m3",
+        "price": 10.0,
+        "qty": 1,
+        "notes": "InMoov BOM: about 100x M3x12 for small servos and about 50x M4x20 for large servos. Use a hardware store if that's cheaper. [estimate]"
+      },
+      {
+        "item": "ARM: M8 through-bolts",
+        "product": "M8x90-100 mm bolts + nylock nuts (about 6)",
+        "url": "https://www.homedepot.ca/",
+        "price": 15.0,
+        "qty": 1,
+        "notes": "One M8x90 per shoulder-to-Clavi joint, plus the elbow and wrist axles (the wrist uses an 8 mm x 6 cm bolt). The InMoov BOM lists about 15x M8x100 for the whole robot. A hardware store is cheapest. [estimate]"
+      },
+      {
+        "item": "ARM: Worm/gear grease",
+        "product": "PTFE grease (Super Lube 21030 class)",
+        "url": "https://www.amazon.ca/s?k=super+lube+ptfe+grease",
+        "price": 12.0,
+        "qty": 1,
+        "notes": "Needed on the PivWorm/RotWorm and the ball races. Must not attack ABS/PLA or the plastic BBs. [estimate]"
+      },
+      {
+        "item": "Neck x2 + spares",
         "product": "Feetech STS3215 12V 30 kg-cm bus servo, 6-pack (official store)",
         "url": "https://www.aliexpress.com/item/1005008670304643.html",
         "price": 166.42,
         "qty": 1,
-        "notes": "C$160.99 + C$5.43 shipping, 4.9 stars, 232 sold. Checked on the page."
+        "notes": "C$160.99 + C$5.43 shipping, 4.9 stars, 232 sold. Checked on the page. Wrists moved to the owned MG996Rs (InMoov wrist uses MG996R)."
       },
       {
         "item": "Drive base",
@@ -288,22 +344,6 @@
         "price": 30.0,
         "qty": 1,
         "notes": "Estimate. Non-negotiable for a 1.8 m robot on wheels."
-      },
-      {
-        "item": "Motor drivers (x8)",
-        "product": "BTS7960 43 A H-bridge",
-        "url": "https://www.universal-solder.ca/product/dual-bts7960-h-bridge-dc-motor-driver-max-43a/",
-        "price": 7.19,
-        "qty": 8,
-        "notes": "C$7.99, C$7.19 each at qty 3-9, in stock in Canada (Universal-Solder). Checked on the page."
-      },
-      {
-        "item": "Joint angle sensors (x8)",
-        "product": "AS5600 magnetic encoder module",
-        "url": "https://www.aliexpress.com/w/wholesale-as5600-module.html",
-        "price": 3.39,
-        "qty": 8,
-        "notes": "Absolute angle on each worm-motor output shaft. Search-page price."
       },
       {
         "item": "Servo bus adapters (x2)",
@@ -379,9 +419,10 @@
       }
     ],
     "notes": [
-      "Total C$1,341.49 pre-tax vs the C$1,500 budget (C$158.51 buffer). Compute is the owner's laptop (Pi Zero 2 W is out of stock in Canada).",
-      "Week 1: buy ONE 1000:1 and ONE 500:1 motor and bench-test them (torque 80 kg-cm, backlash <= 1.5 deg, self-lock < 1 deg, < 60 C) before ordering the other six.",
-      "Legs gate at week 10: two more STS3215 6-packs + 3S LiPo (~C$388) for the small walker; needs trims of ~C$229 from the buffer."
+      "Both arms C$452.30 pre-tax (cap C$500). Whole phase 2 C$1077.15; plus the hands cart (already bought) C$316.40.",
+      "Arm servos per arm: omoplate, rotate, bicep = DS5160 60 kg with the pot moved to the joint (Gael's mod); shoulder = DS5160 pot in place, limited 0-80; wrist + 5 fingers = owned MG996R.",
+      "DS5160 is the HS-805BB footprint (65x30 mm) but 10 mm shorter: expect a printed spacer under the tabs; test-fit one before printing everything. Exact drop-in is the PDI-HV2060MG (~C$54 each, would break the cap).",
+      "Removed vs round 3: 8x NFP 5840 worm motors, 8x BTS7960, 8x AS5600 (custom-arm parts that don't mount in InMoov STLs). The owned PCA9685s drive the arm servos."
     ]
   }
 }

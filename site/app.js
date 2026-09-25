@@ -62,7 +62,7 @@ async function parts() {
   $("p2-title").textContent = p2.title;
   const cur2 = p2.currency || "USD";
   table($("p2"), p2.items, cur2, cur2 === "CAD"
-    ? [["Subtotal", money(p2usd), "sub"], [`Under the $1,500 budget by`, money(1500 - p2usd), "total"]]
+    ? [["Subtotal", money(p2usd), "sub"], [`Total incl. the $316.40 hands cart`, money(p2usd + 316.40), "total"]]
     : [["Subtotal", money(p2usd, "USD"), "sub"], [`≈ CAD at ${bom.usd_to_cad}`, money(p2usd * bom.usd_to_cad), "total"]]);
 }
 
