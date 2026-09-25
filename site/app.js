@@ -38,7 +38,7 @@ async function home() {
   const cards = road.steps.flatMap((st) => [st.hardware, st.software]);
   $("jobs").innerHTML = JOBS.map(([j, w]) => `<li class="${w}">${esc(j)}<span>${w === "now" ? "16-week build" : "next"}</span></li>`).join("");
   $("stats").innerHTML = [
-    ["Life-size", "InMoov humanoid, 1.8 m design"],
+    ["Life-size", "Our own humanoid design, 1.8 m"],
     ["C$1,500", "Whole-robot budget, printing free"],
     [money(taxed), "Hands cart incl. tax"],
     [`${cards.filter((c) => c.done).length}/${cards.length}`, "Plan steps done"],

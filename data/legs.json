@@ -1,5 +1,5 @@
 {
-  "note": "Legs v1 are robotai's own design (cad/legs_v1.py, Blender), built for dynamic moves: 7 joints per leg, big drives at hip and knee, ankle drives in the calf with push rods. 'match' is a regex on part / joint names in the GLB.",
+  "note": "Legs of robotai v1 (our own design, cad/legs.py). 'match' is a regex on part / joint names in site/models/robot_v1.glb.",
   "stages": [
     {
       "when": "Weeks 1-10",
@@ -22,7 +22,7 @@
       "id": "hip",
       "name": "Hips",
       "joints": "yaw + roll + pitch, per leg",
-      "match": "hip",
+      "match": "_hip_",
       "actuator": "3 brushless drives per hip; the pitch drive is the biggest, it powers jumps and kicks",
       "made": "Printed pelvis and hip brackets",
       "status": "gated"
@@ -40,7 +40,7 @@
       "id": "calf",
       "name": "Calf + ankle drives",
       "joints": "ankle pitch + roll",
-      "match": "calf|ankle",
+      "match": "calf|shin|ankle_drive|ankle_rod",
       "actuator": "Two drives sit high in the calf and push the foot through rods, so the lower leg stays light for fast swings",
       "made": "Printed calf shell, carbon push rods",
       "status": "gated"
@@ -49,7 +49,7 @@
       "id": "foot",
       "name": "Foot + toe",
       "joints": "toe bend",
-      "match": "foot|sole|toe",
+      "match": "foot|sole|toe|heel|tread|ankle_(yoke|cross|pin)",
       "actuator": "Toe joint for push-off when running and jumping",
       "made": "Printed foot, TPU rubber sole",
       "status": "gated"
