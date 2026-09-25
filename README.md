@@ -3,7 +3,7 @@
 An open-source AI home-helper robot, built by students in Toronto over 16 weeks.
 Phase 1 is two 3D-printed robotic hands. Phase 2 is a two-arm mobile robot that learns chores from demonstrations, with a fast multimodal model on Cerebras doing the planning.
 
-**Live site:** served from this repo on Railway, and every push to `main` redeploys it.
+**Live site:** https://site-production-8e40.up.railway.app (Railway, redeploys on every push to `main`)
 
 ## Update the site
 | What | Edit | Then |
