@@ -19,7 +19,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
-from . import primitives, sim
+from . import habit, primitives, sim
 from .brain import StubBrain
 from .config import HandConfig
 
@@ -119,15 +119,28 @@ def cem(fam, obj, rng, center=None, pop=32, iters=3, elite=0.25):
     return sorted(seen, key=lambda c: _score(c["pred"]), reverse=True)
 
 
-def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=(), search="rank", family_policy="brain"):
+def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=(), search="rank", family_policy="brain",
+          habits=False):
     """choose -> sample -> predict -> rank. Returns (family, ranked candidates, brain_s, physics_s, log).
     search="cem": the brain only picks the family, physics searches (s, t) densely (see cem).
-    family_policy="random": ablation - ignore the brain's family choice (is the model decorative?)."""
+    family_policy="random": ablation - ignore the brain's family choice (is the model decorative?).
+    habits=True: if hand.habit says this object has a reliable habit, skip BOTH model calls (choose and rank) and
+    let physics order the candidates - learning when not to think."""
     brain_s = physics_s = 0.0
     log = []
     mem_text = memory.as_prompt(goal, obj) if (memory is not None and use_memory) else "No past attempts yet."
     if avoid:
         mem_text += "\nAlready failed just now, do not repeat: " + ", ".join(sorted(avoid))
+    h = habit.lookup(memory, obj) if (habits and memory is not None and not avoid) else None
+    if h is not None:
+        fam = h["family"]
+        cands = primitives.sample(fam, n, rng, center=(h["s"], h["t"]), spread=0.06)
+        t0 = time.perf_counter()
+        for cand, pred in zip(cands, predict_all([c["q"] for c in cands], obj)):
+            cand["pred"] = pred
+        physics_s += time.perf_counter() - t0
+        log.append({"step": "habit", "family": fam, "why": f"habit: {h['n']} tries, p={h['p']}", "latency": 0.0})
+        return fam, sorted(cands, key=lambda c: _score(c["pred"]), reverse=True), 0.0, physics_s, log
     c = brain.choose(goal, image, mem_text, obj_hint=obj)
     brain_s += brain.last_latency
     fam = c.get("family") if c.get("family") in primitives.FAMILIES else "power"
@@ -163,7 +176,7 @@ def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=(), search=
 
 def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True, use_memory=True,
             render=False, rng=None, veto=None, max_replans=2, holdout=False, world=None, search="rank",
-            family_policy="brain"):
+            family_policy="brain", habits=False):
     """One task. With verify=True the robot checks itself after every try and replans on failure
     (new family if the physics had no better idea); with verify=False it assumes success, like most robots.
     veto (default: on when n > 1): if physics predicts that even the best-ranked grasp drops, replan with another
@@ -173,7 +186,8 @@ def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True
     make_world = (lambda: world) if world is not None else (lambda: randomized_world(obj, seed, holdout))
     world = make_world()                     # sim by default; hand.hardware.HardwareWorld for the real hand
     image = world.render() if render else None
-    fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image, (), search, family_policy)
+    fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image, (), search, family_policy,
+                                                  habits)
     failed_fams, k = set(), 0
     for _ in range(max_replans if veto else 0):
         if any(c["pred"]["held"] for c in ranked):

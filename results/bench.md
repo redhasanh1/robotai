@@ -38,6 +38,16 @@ _2026-09-26 10:04; seeds per cell: 12; latency profiles are assumptions until me
 | dev | 50% | 100% | 1.04 |
 | holdout | 44% | 92% | 1.44 |
 
+## 7. Habits: learning when not to think (model calls per task / success, per 12 episodes)
+
+| episodes | off calls | off success | gated calls | gated success | ungated calls | ungated success |
+|---|---|---|---|---|---|---|
+| 1-12 | 3.17 | 100% | 3.17 | 100% | 3.17 | 100% |
+| 13-24 | 3.0 | 100% | 1.0 | 100% | 1.0 | 100% |
+| 25-36 | 3.0 | 100% | 1.0 | 100% | 1.0 | 100% |
+| 37-48 | 3.0 | 100% | 1.0 | 100% | 1.0 | 100% |
+| 49-60 | 3.0 | 100% | 1.0 | 100% | 1.0 | 100% |
+
 ## 6. Brain speed (decision = choose + rank all N, budget 1.0 s)
 
 | brain | N=1 | N=2 | N=4 | N=8 | N=16 | N=32 | max N in budget |

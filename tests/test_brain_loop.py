@@ -89,3 +89,41 @@ def test_loop_drives_hardware_world_on_fake_board():
     r = loop.attempt("pick up the can", "can", brain.StubBrain(), memory.Memory(), n=4, seed=0, world=world)
     assert r.success and r.tries == 2                    # "n" then "y": failed once, retried, held
     assert link.fake.state == "RUN" and link.q_cmd[1] < 0.3   # back at rest, watchdog never tripped
+
+
+def test_habit_forms_after_successes_and_breaks_on_failure():
+    from hand import habit
+    m = memory.Memory()
+    good = primitives.sample("power", 1, np.random.default_rng(0))[0]
+    assert habit.lookup(m, "can") is None
+    for _ in range(3):
+        m.add("pick up the can", "can", good, True)
+    h = habit.lookup(m, "can")
+    assert h and h["family"] == "power" and h["n"] == 3
+    m.add("pick up the can", "can", good, False)             # one fresh failure -> ask the model again
+    assert habit.lookup(m, "can") is None
+
+
+def test_habits_cut_model_calls_without_losing_success():
+    counts = {}
+    for use in (False, True):
+        mem, b = memory.Memory(), brain.StubBrain()
+        ok = 0
+        for e in range(12):
+            r = loop.attempt("pick up the can", "can", b, mem, n=4, seed=e, habits=use)
+            ok += r.success
+        counts[use] = (len(b.calls), ok)
+    assert counts[True][0] < counts[False][0] and counts[True][1] >= counts[False][1] - 1
+
+
+def test_recorder_writes_episode(tmp_path):
+    from hand.recorder import Recorder
+    rec = Recorder(str(tmp_path))
+    ep = rec.start("pick up the ball", "ball", source="real")
+    for k in range(10):
+        ep.step(k * 0.02, [0.1 * k] * 6, [0.09 * k] * 6, image=np.zeros((24, 32, 3), np.uint8))
+    ep.end(True, family="power", s=0.8, t_thumb=0.9)
+    (path, meta), = rec.episodes()
+    d = np.load(f"{path}/steps.npz")
+    assert meta["success"] and meta["steps"] == 10 and d["action"].shape == (10, 6)
+    assert len(list((tmp_path / "000000" / "frames").iterdir())) == 4          # every 3rd frame

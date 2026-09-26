@@ -16,6 +16,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from hand import brain, loop, memory  # noqa: E402
+from hand.recorder import Recorder  # noqa: E402
 from hand.hardware import HardwareWorld  # noqa: E402
 from hand.link import HandLink  # noqa: E402
 
@@ -30,12 +31,14 @@ def main():
     ap.add_argument("--n", type=int, default=8)
     a = ap.parse_args()
     link = HandLink.open(port="" if a.port == "fake" else a.port)
-    world = HardwareWorld(link, camera=a.cam)
+    world = HardwareWorld(link, camera=a.cam, recorder=Recorder(os.path.join(ROOT, "logs", "episodes")),
+                          task=f"pick up the {a.object}", obj=a.object)   # every attempt saved for post-training
     b = brain.make(os.environ.get("BRAIN", "stub:instant"))
     mem = memory.Memory(os.path.join(ROOT, "logs", "memory.sqlite"))
     print(f"memory: {mem.stats()['episodes']} past attempts")
     try:
-        r = loop.attempt(f"pick up the {a.object}", a.object, b, mem, n=a.n, world=world, render=a.cam is not None)
+        r = loop.attempt(f"pick up the {a.object}", a.object, b, mem, n=a.n, world=world, render=a.cam is not None,
+                     habits=True)
         for s in r.log:
             if s["step"] == "execute":
                 print(f"  try {s['try']}: {s['cand']} -> {'HELD' if s['truth'] else 'dropped'}"

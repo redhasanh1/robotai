@@ -75,6 +75,34 @@ def holdout(seeds):
     return rows
 
 
+def habits(episodes=60, n=8, window=12):
+    """Learning when not to think: model calls per task and success over time, habits off / gated / ungated."""
+    from hand import habit
+    out = {}
+    for mode in ("off", "gated", "ungated"):
+        mem, b = memory.Memory(), brain.StubBrain("instant")
+        saved = habit.MIN_TRIES, habit.MIN_P
+        if mode == "ungated":
+            habit.MIN_TRIES, habit.MIN_P = 1, 0.0          # ablation: act on habit after one success, no confidence
+        rows = []
+        try:
+            for e in range(episodes):
+                o = OBJECTS[e % len(OBJECTS)]
+                c0 = len(b.calls)
+                r = loop.attempt(f"pick up the {o}", o, b, mem, n=n, seed=2000 + e, habits=mode != "off")
+                rows.append({"calls": len(b.calls) - c0, "success": r.success,
+                             "habit": any(s["step"] == "habit" for s in r.log)})
+        finally:
+            habit.MIN_TRIES, habit.MIN_P = saved
+        out[mode] = [{"episodes": f"{i + 1}-{i + window}",
+                      "calls_per_task": round(sum(x["calls"] for x in rows[i:i + window]) / window, 2),
+                      "success": round(sum(x["success"] for x in rows[i:i + window]) / window, 2),
+                      "habit_share": round(sum(x["habit"] for x in rows[i:i + window]) / window, 2)}
+                     for i in range(0, episodes, window)]
+        print("habits", mode, out[mode][-1], flush=True)
+    return out
+
+
 def memory_curve(episodes, n=4):
     out = {}
     for use in (False, True):
@@ -126,6 +154,13 @@ def to_md(r):
     L += ["", "## 5. Held-out contact model (softer contacts, pyramidal cone, condim 3 - nothing tuned on it)", "",
           "| world | blind single try | full system (N=8, veto, self-check, memory) | tries |", "|---|---|---|---|"]
     L += [f"| {x['world']} | {x['blind_single_try']:.0%} | {x['full_system']:.0%} | {x['tries']} |" for x in r["holdout"]]
+    if "habits" in r:
+        L += ["", "## 7. Habits: learning when not to think (model calls per task / success, per 12 episodes)", "",
+              "| episodes | " + " | ".join(f"{m} calls | {m} success" for m in r["habits"]) + " |",
+              "|---|" + "---|---|" * len(r["habits"])]
+        for i in range(len(next(iter(r["habits"].values())))):
+            L.append(f"| {next(iter(r['habits'].values()))[i]['episodes']} | " + " | ".join(
+                f"{v[i]['calls_per_task']} | {v[i]['success']:.0%}" for v in r["habits"].values()) + " |")
     L += ["", f"## 6. Brain speed (decision = choose + rank all N, budget {r['speed'][0]['budget_s']} s)", "",
           "| brain | " + " | ".join(f"N={n}" for n in r["speed"][0]["decision_s"]) + " | max N in budget |",
           "|---|" + "---|" * (len(r["speed"][0]["decision_s"]) + 1)]
@@ -148,7 +183,8 @@ def main():
     seeds = 4 if a.quick else 12
     t0 = time.time()
     r = {"when": time.strftime("%Y-%m-%d %H:%M"), "seeds": seeds, "best_of_n": best_of_n(seeds),
-         "verifier": verifier(seeds), "veto": veto(seeds), "holdout": holdout(seeds), "memory": memory_curve(16 if a.quick else 40), "speed": speed(a.budget)}
+         "verifier": verifier(seeds), "veto": veto(seeds), "holdout": holdout(seeds), "memory": memory_curve(16 if a.quick else 40), "habits": habits(24 if a.quick else 60),
+         "speed": speed(a.budget)}
     os.makedirs(OUT, exist_ok=True)
     with open(os.path.join(OUT, "bench.json"), "w") as f:
         json.dump(r, f, indent=1)

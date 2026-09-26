@@ -18,8 +18,10 @@ from . import primitives
 
 
 class HardwareWorld:
-    def __init__(self, link, camera=None, ask=input, close_s=1.2, hold_s=2.0):
+    def __init__(self, link, camera=None, ask=input, close_s=1.2, hold_s=2.0, recorder=None, task="", obj=""):
         self.link, self.ask = link, ask
+        self.recorder, self.task, self.obj = recorder, task, obj      # hand.recorder.Recorder: save every attempt
+        self.ep, self.t0 = None, 0.0
         self.close_s, self.hold_s = close_s, hold_s
         self.cap = None
         if camera is not None:
@@ -36,17 +38,28 @@ class HardwareWorld:
         start = np.array(self.link.q_cmd, float)
         q = np.asarray(q, float)
         steps = max(1, int(seconds / 0.02))
+        import time as _time
         for k in range(1, steps + 1):
             self.link.move(start + (q - start) * k / steps)   # smooth ramp; firmware clamps + slew-limits too
             self.link.tick(0.02)
+            if self.ep is not None:
+                # state = commanded until the vision estimator runs on the real hand (then pass its q here)
+                self.ep.step(_time.time() - self.t0, self.link.q_cmd, self.link.q_cmd,
+                             self.render() if self.cap is not None else None)
 
     def grasp_test(self, q):
+        import time as _time
         self._go(primitives.OPEN, 0.8)
         self.ask("Put the object in the open palm, then press Enter ")
+        if self.recorder is not None:
+            self.ep, self.t0 = self.recorder.start(self.task, self.obj, source="real"), _time.time()
         self._go(q, self.close_s)
         self.link.wait(0.5)
         self.ask("Now turn the hand over (palm down) and shake gently, then press Enter ")
         held = self.ask("Is it still in the hand? [y/n] ").strip().lower().startswith("y")
         self._go(primitives.REST, 0.8)
+        if self.ep is not None:
+            self.ep.end(held)
+            self.ep = None
         return {"held": held, "dist": float("nan"), "touching": [], "slip_t": None,
                 "flexion": np.round(self.link.q_cmd, 3).tolist()}
