@@ -42,6 +42,8 @@ FINGERS = ("index", "majeure", "ringFinger", "ringfinger", "pinky", "thumb")
 HANDOVER = (-0.25, -0.52, 1.20)
 NECK = "head_neck_001"          # nod (pitch)
 TURN = "head_rothead"           # look left/right, shake
+SHOWCASE = ("tidy the table, then stack the block on the can, then give me the ball, then point at the bar, "
+            "then push the can toward me, then look at the bar and nod, then wave, then box")
 TASKS = ["put the ball on the left", "stack the block on the can", "give me the bar", "point at the can",
          "push the ball forward", "tidy the table", "put the can on the right and then wave",
          "pick up the block", "look at the ball and nod", "clap", "box", "put the bar in the middle",
@@ -334,9 +336,12 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("command", nargs="*")
     ap.add_argument("--random", action="store_true")
+    ap.add_argument("--showcase", action="store_true", help="run a long chain of tasks in one window")
     ap.add_argument("--video", default="")
     a = ap.parse_args()
     command = random.choice(TASKS) if a.random or not a.command else " ".join(a.command)
+    if a.showcase:
+        command = SHOWCASE
     import mujoco
     m = build_model(extra=scene())
     steps, unknown = plan(command)
