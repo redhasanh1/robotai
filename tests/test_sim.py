@@ -28,7 +28,7 @@ def test_full_inmoov_skeleton_builds_and_moves():
     import mujoco
     from hand.inmoov_sim import build_model
     m = build_model(meshes=False)                      # no downloaded meshes needed
-    assert m.njnt == 57 and m.nu == 56
+    assert m.njnt == 56 and m.nu == 56                   # the free-spinning stand joint is welded
     d = mujoco.MjData(m)
     d.ctrl[m.actuator("right_elbow_x").id] = 1.0
     for _ in range(1500):
