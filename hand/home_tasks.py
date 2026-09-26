@@ -405,3 +405,20 @@ def score(m, brain=None, say=print, only=None):
                      "program": prog, "seconds": round(sum(f[0] for f in body.frames), 1)})
         say(f"[{i + 1:2d}] {'PASS' if ok else 'fail'} {how:9s} {p}" + (f"   ({body.problems[0]})" if body.problems else ""))
     return rows
+
+
+def do_task(command, m, brain=None, library=None, messes=None, say=print):
+    """Rules first; then a skill the robot wrote for itself earlier (no model call); then the AI composes one.
+    -> (program, how, ai_part, key) - key is what to pass to library.learn once the outcome is known."""
+    prog, unknown = plan(command)
+    if not unknown:
+        return prog, "rules", [], None
+    key = ", ".join(unknown)
+    hit = library.recall(key) if library is not None else None
+    if hit and not home.HomeBody(m, messes).run(prog + hit["program"]).problems:     # re-checked with the new objects
+        say(f"  own skill '{hit['name']}' (p={hit['p']}, used {hit['tries']}x): no model call")
+        return prog + hit["program"], "own skill", hit["program"], key
+    if brain is None:
+        return prog, "not understood", [], key
+    extra, _ = think(key, m, brain, say=say, messes=messes)
+    return prog + extra, "AI", extra, key
