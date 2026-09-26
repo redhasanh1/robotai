@@ -417,7 +417,11 @@ class HomeBody(motor.Body):
                 for k in range(n0, len(self.problems)):
                     self.problems[k] = f"step {i + 1}: " + self.problems[k]
             else:
+                # one action at a time, so motor.Body calls every step "step 1": renumber to its real place
+                n0 = len(self.problems)
                 super().run([a], finish=False)
+                for k in range(n0, len(self.problems)):
+                    self.problems[k] = re.sub(r"^step 1\b", f"step {i + 1}", self.problems[k])
         if finish:
             for s in ("right", "left"):
                 if self.held[s]:

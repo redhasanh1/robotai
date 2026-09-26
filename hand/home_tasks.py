@@ -284,7 +284,7 @@ def examples_for(command, k=4, hints=False):
     return pool[:k]
 
 
-def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False, situate=False, messes=None):
+def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False, situate=False, messes=None, splice=True):
     """AI writes a home program, the body checks it, the AI repairs it. With use_examples the most similar tasks
     the robot already knows are put in the prompt (in-context learning - no training)."""
     world = home.describe_world(home.HomeBody(m, messes))
@@ -299,18 +299,73 @@ def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False
         say(f"  situation: {goal}")
     reply = brain.program(command, world, doc, goal=goal)
     prog = reply.get("program") or []
-    for r in range(rounds + 1):
+    rewrites = 0
+    for r in range(rounds + 1 + (len(prog) if splice else 0)):      # step repairs are cheap: one per step at most
         low = [f"step {i + 1}: '{a.get('do')}' is not allowed - use only: {', '.join(HIGH_LEVEL)}"
                for i, a in enumerate(prog) if isinstance(a, dict) and a.get("do") not in HIGH_LEVEL]
         prog = [a for a in prog if isinstance(a, dict) and a.get("do") in HIGH_LEVEL]      # drop, and say so
         problems = low + (home.HomeBody(m, messes).run(prog).problems if prog else ["the program was empty"])
         say(f"  {'plan' if r == 0 else f'repair {r}'}: {len(prog)} steps" +
             (f", problems: {'; '.join(problems[:2])}" if problems else ", checks out on the body"))
-        if not problems or r == rounds:
+        if not problems:
             break
+        if splice and hasattr(brain, "choose_step") and not low:
+            fixed = splice_repair(command, prog, m, brain, messes, say)
+            if fixed is not None:
+                prog = fixed
+                continue
+        if rewrites == rounds:
+            break
+        rewrites += 1
         reply = brain.program(command, world, doc, problems=problems, previous=prog, goal=goal)
         prog = reply.get("program") or prog
     return prog, reply.get("say", "")
+
+
+def step_options(prog, k, m, messes):
+    """Concrete replacements for step k, each checked on the body first: only steps that physically work are offered
+    (physics veto, then the AI chooses - the grasp pipeline's pattern, applied to plans). Rooms come from the plan so
+    far and from what the camera sees; nothing here knows about any particular request."""
+    bad = prog[k]
+    rooms = [a.get("to") for a in prog[:k] if a.get("do") == "go"]
+    rooms = list(dict.fromkeys(rooms[-1:] + list(messes or {}) + [bad.get("room"), bad.get("to")]))
+    rooms = [r for r in rooms if r in home.ROOMS]
+    obj = bad.get("obj") if bad.get("obj") in home.OBJECTS else None
+    cands = [{"do": "remove"}]
+    for r in rooms:
+        cands += [{"do": "wipe", "room": r}, {"do": "go", "to": r}]
+        if obj:
+            cands.append({"do": "put_on", "obj": obj, "room": r})
+    if obj:
+        cands += [{"do": "pick", "obj": obj}, {"do": "give", "obj": obj}] + \
+                 [{"do": "put_in", "obj": obj, "into": c} for c in home.CONTAINERS]
+    out = []
+    for c in cands:
+        if c == bad:
+            continue
+        trial = prog[:k] + ([] if c["do"] == "remove" else [c])
+        if not home.HomeBody(m, messes).run(trial).problems:        # the step itself must work where it stands
+            out.append(c)
+    return out[:6]
+
+
+def splice_repair(command, prog, m, brain, messes, say=print):
+    """Repair ONE step instead of rewriting the program (Kimi round 9): a small model anchored on its own plan
+    returns it unchanged when asked to rewrite, but can pick from a short list of steps that already work."""
+    probs = home.HomeBody(m, messes).run(prog).problems
+    hit = re.match(r"step (\d+): (.*)", probs[0]) if probs else None
+    if not hit:
+        return None
+    k = int(hit.group(1)) - 1
+    if not 0 <= k < len(prog):
+        return None
+    opts = step_options(prog, k, m, messes)
+    if not opts:
+        return None
+    i = brain.choose_step(command, prog, k, hit.group(2), opts)
+    c = opts[i if 0 <= i < len(opts) else 0]
+    say(f"  step {k + 1} {json.dumps(prog[k])} -> {json.dumps(c)}")
+    return prog[:k] + ([] if c["do"] == "remove" else [c]) + prog[k + 1:]
 
 
 def score(m, brain=None, say=print, only=None):

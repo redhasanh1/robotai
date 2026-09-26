@@ -128,6 +128,23 @@ class OpenAIBrain:
             'Reply with ONE JSON object: {"wrong": "<what is wrong now>", "goal": "<what should be true after>"}',
             None, 120, "goal")
 
+    def choose_step(self, command, prog, k, error, options):
+        """One-step repair: the failing step, the body's error, and replacements that already work -> an index."""
+        steps = "\n".join(f"{i + 1}. {json.dumps(a)}" + ("   <- FAILED" if i == k else "") for i, a in enumerate(prog))
+        opts = "\n".join(f"{i}: " + ("remove this step" if o["do"] == "remove" else json.dumps(o))
+                         for i, o in enumerate(options))
+        r = self._ask(
+            f'Request: "{command}"\nThe robot\'s plan:\n{steps}\n\nStep {k + 1} failed on the body: {error}\n'
+            f"Replacements for step {k + 1} (each one works on the body):\n{opts}\n\n"
+            'Which one best does what the person asked? Reply with ONE JSON object: {"pick": <number>}',
+            None, 20, "rank", len(options))
+        if "pick" in r:
+            try:
+                return int(r["pick"])
+            except (TypeError, ValueError):
+                return 0
+        return (r.get("order") or [0])[0]
+
     def program(self, command, world, actions_doc, problems=None, previous=None, goal=""):
         """Write (or repair) a motor program for the full robot: -> {"program": [...], "say": "..."}."""
         fix = ""
