@@ -15,7 +15,7 @@ import tkinter as tk
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
 TOOLS = ("demo.py", "bench.py", "brain_live.py", "local_vlm_server.py", "estimator_eval.py",
-         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py")
+         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py", "robot_do.py")
 PS_LIST = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='pythonw.exe'\" | "
            "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress")
 
@@ -48,7 +48,7 @@ class Panel:
         self.w.geometry("440x640+40+40")
         self.w.attributes("-topmost", True)
         tk.Label(self.w, text="PINN Humanoid", font=("Segoe UI", 14, "bold")).pack(pady=(10, 4))
-        tk.Label(self.w, text="Tell the robot (e.g. pick up the orange):", anchor="w").pack(fill="x", padx=16)
+        tk.Label(self.w, text="Tell the robot (pick up the ball, wave, box, clean the dishes...):", anchor="w").pack(fill="x", padx=16)
         row = tk.Frame(self.w)
         row.pack(fill="x", padx=16, pady=(0, 6))
         self.cmd = tk.Entry(row, font=("Segoe UI", 11))
@@ -95,7 +95,7 @@ class Panel:
             return
         self.out.delete("1.0", "end")
         self.out.insert("end", "thinking...\n")
-        p = subprocess.Popen([PY, "-u", os.path.join(ROOT, "tools", "demo.py"), "--say", text], cwd=ROOT,
+        p = subprocess.Popen([PY, "-u", os.path.join(ROOT, "tools", "robot_do.py"), text], cwd=ROOT,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                              creationflags=subprocess.CREATE_NO_WINDOW)
 

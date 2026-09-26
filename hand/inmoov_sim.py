@@ -37,7 +37,7 @@ def _short(name):
     return name.replace("i01.", "").replace("_link_joint", "").replace("_link", "").replace(".", "_")
 
 
-def build_xml(urdf=URDF, meshes=None):
+def build_xml(urdf=URDF, meshes=None, extra=""):
     """meshes=None: use the real printed shapes if tools/fetch_inmoov_meshes.py has cached them, else skeleton."""
     root = ET.parse(urdf).getroot()
     links = {l.get("name"): l for l in root.findall("link")}
@@ -94,8 +94,8 @@ def build_xml(urdf=URDF, meshes=None):
                 lo, hi = (float(lim.get("lower", 0)), float(lim.get("upper", 0))) if lim is not None else (0, 0)
                 name = _short(j.get("name"))
                 rng = f'range="{lo} {hi}"' if hi > lo else ""
-                inner.append(f'<joint name="{name}" type="hinge" axis="{ax}" {rng} damping="2" armature="0.02"/>')
-                if hi > lo:
+                if hi > lo:                           # a joint with no range has no motor: weld it, or it spins free
+                    inner.append(f'<joint name="{name}" type="hinge" axis="{ax}" {rng} damping="2" armature="0.02"/>')
                     acts.append(f'<position name="{name}" joint="{name}" kp="30" ctrlrange="{lo} {hi}"/>')
             inner.append('<inertial pos="0 0 0" mass="0.2" diaginertia="2e-3 2e-3 2e-3"/>')   # posing model: mass is nominal
             inner += body(child, depth + 1)
@@ -115,11 +115,12 @@ def build_xml(urdf=URDF, meshes=None):
     <light pos="0 -1 2" dir="0 0.5 -1"/>
     <geom type="plane" size="2 2 0.01" pos="0 0 0" rgba="0.2 0.22 0.26 1"/>
     <body name="{_short(base)}" pos="0 0 0">{tree}</body>
+    {extra}
   </worldbody>
   <actuator>{"".join(acts)}</actuator>
 </mujoco>"""
 
 
-def build_model(urdf=URDF, meshes=None):
+def build_model(urdf=URDF, meshes=None, extra=""):
     import mujoco
-    return mujoco.MjModel.from_xml_string(build_xml(urdf, meshes))
+    return mujoco.MjModel.from_xml_string(build_xml(urdf, meshes, extra))

@@ -46,3 +46,4 @@ _2026-09-26 10:04; seeds per cell: 12; latency profiles are assumptions until me
 | rented_gpu (assumed) | 1.96s | 2.04s | 2.22s | 2.58s | 3.29s | 4.71s | 0 |
 | cerebras (assumed) | 0.55s | 0.55s | 0.56s | 0.58s | 0.62s | 0.71s | 32 |
 | local_1660ti MEASURED (local, 2026-09-26 10:28) | 13.47s | - | 13.81s | 12.36s | 14.00s | - | |
+| local_1660ti_qwen3b MEASURED (qwen2.5-vl-3b-4bit, 2026-09-26 10:45) | 23.22s | - | 26.05s | 20.62s | 24.87s | - | |
