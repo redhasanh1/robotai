@@ -15,7 +15,7 @@ import tkinter as tk
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
 TOOLS = ("demo.py", "bench.py", "brain_live.py", "local_vlm_server.py", "estimator_eval.py",
-         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py", "robot_do.py")
+         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py", "robot_do.py", "listen.py")
 PS_LIST = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='pythonw.exe'\" | "
            "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress")
 
@@ -55,6 +55,8 @@ class Panel:
         self.cmd.pack(side="left", fill="x", expand=True)
         self.cmd.bind("<Return>", lambda _e: self.say())
         tk.Button(row, text="Do it", command=self.say).pack(side="left", padx=(6, 0))
+        tk.Button(self.w, text="🎤  Speak (4 seconds)", font=("Segoe UI", 11), command=self.speak).pack(
+            fill="x", padx=16, pady=(0, 6))
         self.out = tk.Text(self.w, height=8, font=("Consolas", 9), wrap="word")
         self.out.pack(fill="x", padx=16)
         tk.Button(self.w, text="▶  Sim hand: grab 4 objects (plays once)", font=("Segoe UI", 11),
@@ -89,13 +91,18 @@ class Panel:
                          creationflags=subprocess.CREATE_NO_WINDOW)
         self.w.after(1500, self.refresh)
 
+    def speak(self):
+        self._run(["listen.py"], "starting the microphone...\n")
+
     def say(self):
         text = self.cmd.get().strip()
-        if not text:
-            return
+        if text:
+            self._run(["robot_do.py", text], "thinking...\n")
+
+    def _run(self, args, first_line):
         self.out.delete("1.0", "end")
-        self.out.insert("end", "thinking...\n")
-        p = subprocess.Popen([PY, "-u", os.path.join(ROOT, "tools", "robot_do.py"), text], cwd=ROOT,
+        self.out.insert("end", first_line)
+        p = subprocess.Popen([PY, "-u", os.path.join(ROOT, "tools", args[0]), *args[1:]], cwd=ROOT,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
                              creationflags=subprocess.CREATE_NO_WINDOW)
 

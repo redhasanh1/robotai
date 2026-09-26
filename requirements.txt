@@ -10,3 +10,14 @@ pytest
 
 # optional: NVIDIA MuJoCo Warp, GPU batch simulation (works on any CUDA GPU incl. GTX 1660 Ti)
 mujoco-warp
+
+# optional: voice (tools/listen.py)
+sounddevice
+soundfile
+# optional: local VLM server (tools/local_vlm_server.py)
+transformers
+accelerate
+bitsandbytes
+# optional: real InMoov meshes in the full-body sim (tools/fetch_inmoov_meshes.py)
+trimesh
+pycollada
