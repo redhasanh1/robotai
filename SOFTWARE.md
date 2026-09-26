@@ -49,13 +49,11 @@ On test hands with physics we never designed for, this is **6 to 20 times more a
 | Everything together, on a contact model nothing was tuned on | 44% (blind single try) | 92% |
 | Finger position estimate vs camera alone | ~16 deg error | 1-3 deg |
 | NVIDIA GPU sim on the laptop's GTX 1660 Ti | - | 1024 grasps checked in 1.9 s |
-
 | Habits: stop asking the AI once a grasp keeps working | 3.0 AI calls per task | 1.0 AI call, same 100% success |
 | Brain's choice of grasp type vs a random one (full system) | 85% (random) | 98% (brain) |
 
 Brain speed per decision:
 - **Measured:** Qwen2.5-VL-3B on the laptop: ~25 s (follows instructions 48/48); SmolVLM-500M: ~14 s (4/48)
-
 - **Estimated:** rented GPU ~3 s, Cerebras ~0.6 s (to be measured, needs the API key)
 
 Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
