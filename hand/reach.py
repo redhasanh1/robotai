@@ -21,7 +21,8 @@ def palm(side="right"):
     return PALM.replace("right", side)
 
 
-def solve(m, target, iters=300, damping=0.05, tol=0.01, seed_q=None, side="right"):
+def solve(m, target, iters=300, damping=0.05, tol=0.01, seed_q=None, side="right", base=None):
+    """base=(x, y, yaw) of the wheeled base when the model is mobile; target is in world coordinates."""
     import mujoco
     d = mujoco.MjData(m)
     names = arm(side)
@@ -31,6 +32,9 @@ def solve(m, target, iters=300, damping=0.05, tol=0.01, seed_q=None, side="right
     lo, hi = m.jnt_range[jid, 0], m.jnt_range[jid, 1]
     if seed_q is not None:
         d.qpos[adr] = seed_q
+    if base is not None:
+        for n, v in zip(("base_x", "base_y", "base_yaw"), base):
+            d.qpos[m.jnt_qposadr[m.joint(n).id]] = v
     body = m.body(palm(side)).id
     target = np.asarray(target, float)
     jacp = np.zeros((3, m.nv))

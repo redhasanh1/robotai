@@ -424,8 +424,16 @@ def play(m, d, frames, on_frame):
     """Kinematic playback with object events (attach/detach/give/slide/fly)."""
     import mujoco
     names = {m.actuator(i).name for i in range(m.nu)}
-    cur = {n: 0.0 for n in names}
     adr = {n: m.jnt_qposadr[m.actuator_trnid[m.actuator(n).id, 0]] for n in names}
+    for _, goal, _ in frames:                     # un-motored joints driven directly (the wheeled base)
+        for k in goal:
+            if k not in adr:
+                try:
+                    adr[k] = m.jnt_qposadr[m.joint(k).id]
+                except KeyError:
+                    pass
+    names = set(adr)
+    cur = {n: float(d.qpos[adr[n]]) for n in names}
     palms = {s: m.body(reach.palm(s)).id for s in ("right", "left")}
     held = {"right": None, "left": None}
     off = {}

@@ -37,7 +37,7 @@ def _short(name):
     return name.replace("i01.", "").replace("_link_joint", "").replace("_link", "").replace(".", "_")
 
 
-def build_xml(urdf=URDF, meshes=None, extra=""):
+def build_xml(urdf=URDF, meshes=None, extra="", mobile=False):
     """meshes=None: use the real printed shapes if tools/fetch_inmoov_meshes.py has cached them, else skeleton."""
     root = ET.parse(urdf).getroot()
     links = {l.get("name"): l for l in root.findall("link")}
@@ -105,6 +105,11 @@ def build_xml(urdf=URDF, meshes=None, extra=""):
 
     tree = "".join(body(base, 0))
     meshdir = MESH_DIR.replace(chr(92), "/")
+    # mobile: the wheeled base from the build plan - drive x/y and turn (legs come later)
+    mobile_joints = ('<joint name="base_x" type="slide" axis="1 0 0"/><joint name="base_y" type="slide" axis="0 1 0"/>'
+                     '<joint name="base_yaw" type="hinge" axis="0 0 1"/>') if mobile else ""
+    base_geom = ('<geom type="cylinder" size="0.28 0.06" pos="0 0 0.06" rgba="0.25 0.25 0.3 1"/>'
+                 '<geom type="cylinder" size="0.05 0.3" pos="0 0 0.4" rgba="0.35 0.35 0.4 1"/>') if mobile else ""
     return f"""<mujoco model="inmoov_skeleton">
   <compiler angle="radian" meshdir="{meshdir}" inertiafromgeom="false"/>
   <asset>{"".join(assets)}</asset>
@@ -114,13 +119,13 @@ def build_xml(urdf=URDF, meshes=None, extra=""):
   <worldbody>
     <light pos="0 -1 2" dir="0 0.5 -1"/>
     <geom type="plane" size="2 2 0.01" pos="0 0 0" rgba="0.2 0.22 0.26 1"/>
-    <body name="{_short(base)}" pos="0 0 0">{tree}</body>
+    <body name="{_short(base)}" pos="0 0 0">{mobile_joints}{base_geom}{tree}</body>
     {extra}
   </worldbody>
   <actuator>{"".join(acts)}</actuator>
 </mujoco>"""
 
 
-def build_model(urdf=URDF, meshes=None, extra=""):
+def build_model(urdf=URDF, meshes=None, extra="", mobile=False):
     import mujoco
-    return mujoco.MjModel.from_xml_string(build_xml(urdf, meshes, extra))
+    return mujoco.MjModel.from_xml_string(build_xml(urdf, meshes, extra, mobile))
