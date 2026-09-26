@@ -35,7 +35,7 @@ class Servo:
     v_max: float = 3.5            # flexion units / s at no load  (0.17 s/60 deg over a ~120 deg stroke)
     tau: float = 0.05             # s, first-order lag of the servo's internal loop
     deadband: float = 0.01        # flexion units
-    backlash: float = 0.03        # tendon slack, flexion units (makes open/close paths differ)
+    backlash: float = 0.035       # tendon slack, flexion units: fitted on the tendon-level finger (results/tendon.md)
     load_slow: float = 0.6        # fraction of speed lost at stall load
 
     def lo(self):
