@@ -78,3 +78,14 @@ def test_estimator_beats_camera_alone():
     err_cam = np.sqrt(np.mean((np.nan_to_num(held) - qt) ** 2))
     assert err_est < err_cam / 3
     assert np.all(est.std > 0)
+
+
+def test_loop_drives_hardware_world_on_fake_board():
+    from hand.hardware import HardwareWorld
+    from hand.link import HandLink
+    answers = iter(["", "", "n", "", "", "y", "", "", "y"])
+    link = HandLink.open(port="")
+    world = HardwareWorld(link, ask=lambda _p: next(answers))
+    r = loop.attempt("pick up the can", "can", brain.StubBrain(), memory.Memory(), n=4, seed=0, world=world)
+    assert r.success and r.tries == 2                    # "n" then "y": failed once, retried, held
+    assert link.fake.state == "RUN" and link.q_cmd[1] < 0.3   # back at rest, watchdog never tripped

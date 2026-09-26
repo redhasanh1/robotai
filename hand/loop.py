@@ -127,14 +127,15 @@ def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=()):
 
 
 def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True, use_memory=True,
-            render=False, rng=None, veto=None, max_replans=2, holdout=False):
+            render=False, rng=None, veto=None, max_replans=2, holdout=False, world=None):
     """One task. With verify=True the robot checks itself after every try and replans on failure
     (new family if the physics had no better idea); with verify=False it assumes success, like most robots.
     veto (default: on when n > 1): if physics predicts that even the best-ranked grasp drops, replan with another
     family BEFORE touching anything - thinking is cheap, a dropped object is not."""
     rng = rng or np.random.default_rng(seed)
     veto = n > 1 if veto is None else veto
-    world = randomized_world(obj, seed, holdout)
+    make_world = (lambda: world) if world is not None else (lambda: randomized_world(obj, seed, holdout))
+    world = make_world()                     # sim by default; hand.hardware.HardwareWorld for the real hand
     image = world.render() if render else None
     fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image)
     failed_fams, k = set(), 0
@@ -159,7 +160,7 @@ def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True
         chosen = ranked[k]
         k += 1
         if tries > 1:
-            world = randomized_world(obj, seed, holdout)   # object put back, same world
+            world = make_world()                           # object put back, same world
         out = world.grasp_test(chosen["q"])
         truth = out["held"]
         if verify and out["slip_t"] is not None:
