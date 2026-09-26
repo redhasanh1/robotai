@@ -77,11 +77,20 @@ class HandLink:
         self.estop()
 
     @classmethod
-    def open(cls, port=None, cfg=None):
-        cfg = cfg or config.load()
+    def open(cls, port=None, cfg=None, side="right"):
+        """side picks the calibration file AND is checked against the name stored on the board, so the left
+        hand's board can never be driven with the right hand's limits. An unnamed board is named on first use."""
+        cfg = cfg or config.load(side=side)
         port = port if port is not None else cfg.port
         tr = SerialTransport(port, cfg.baud) if port else FakeTransport(cfg)
         link = cls(tr, cfg)
+        on_board = link._query(protocol.side(), "OK").split()[-1]
+        if on_board == "unset":
+            link._query(protocol.side(cfg.side), "OK")
+        elif on_board != cfg.side:
+            link.close()
+            raise RuntimeError(f"this board is the {on_board} hand, not the {cfg.side} hand - wrong COM port? "
+                               f"(or re-name it: tools/console.py {port or ''} then type N 1 / N 2)")
         link.push_limits()
         return link
 

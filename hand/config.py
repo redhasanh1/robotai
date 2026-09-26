@@ -16,7 +16,13 @@ JOINTS = FINGERS + ["wrist"]
 N = len(JOINTS)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-CAL_PATH = os.path.join(os.path.dirname(HERE), "hand_calibration.json")
+CAL_PATH = os.path.join(os.path.dirname(HERE), "hand_calibration.json")          # right hand (first built)
+SIDES = ("right", "left")
+
+
+def cal_path(side="right"):
+    """Each hand has its own servos, so its own calibration file. Right keeps the original name."""
+    return CAL_PATH if side == "right" else os.path.join(os.path.dirname(HERE), f"hand_calibration_{side}.json")
 
 
 @dataclass
@@ -51,21 +57,24 @@ class HandConfig:
     port: str = ""                # e.g. COM5; empty = fake ESP32
     baud: int = 115200
     heartbeat_s: float = 0.05     # laptop sends at least this often; firmware relaxes after 0.2 s of silence
+    side: str = "right"
 
     def servo(self, name):
         return next(s for s in self.servos if s.name == name)
 
-    def save(self, path=CAL_PATH):
-        with open(path, "w") as f:
-            json.dump({"port": self.port, "baud": self.baud,
+    def save(self, path=None):
+        with open(path or cal_path(self.side), "w") as f:
+            json.dump({"side": self.side, "port": self.port, "baud": self.baud,
                        "servos": [asdict(s) for s in self.servos]}, f, indent=2)
 
 
-def load(path=CAL_PATH):
-    cfg = HandConfig()
+def load(path=None, side="right"):
+    cfg = HandConfig(side=side)
+    path = path or cal_path(side)
     if os.path.exists(path):
         with open(path) as f:
             d = json.load(f)
         cfg.port, cfg.baud = d.get("port", ""), d.get("baud", 115200)
+        cfg.side = d.get("side", side)
         cfg.servos = [Servo(**s) for s in d["servos"]]
     return cfg

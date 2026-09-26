@@ -7,6 +7,8 @@ Laptop -> ESP32 (one command per line, '\n' terminated):
     S ch us                move one channel
     L ch min max           set the safety clamp for a channel (saved in flash)
     W us_per_s             slew limit, how fast a pulse may change (saved in flash)
+    N [1|2]                which hand this board drives: N 1 = right, N 2 = left (saved in flash); N alone asks
+                           -> "OK N right|left|unset"
     D ms                   watchdog timeout, 100-2000 ms, default 200 (saved in flash) - raise only after
                            tools/link_jitter.py shows the real USB link needs it
     E                      e-stop: outputs off (servos go limp) until R
@@ -38,6 +40,13 @@ def set_one(ch, us):
 
 def limit(ch, lo, hi):
     return f"L {int(ch)} {int(lo)} {int(hi)}\n"
+
+
+SIDE_CODE = {"right": 1, "left": 2}
+
+
+def side(which=None):
+    return "N\n" if which is None else f"N {SIDE_CODE[which]}\n"
 
 
 def watchdog(ms):
@@ -74,9 +83,13 @@ def parse_command(line):
         nums = [int(x) for x in a]
     except ValueError:
         raise ValueError("not a number")
-    want = {"V": 0, "H": 0, "E": 0, "R": 0, "T": 0, "M": NCH, "S": 2, "L": 3, "W": 1, "D": 1}
+    want = {"V": 0, "H": 0, "E": 0, "R": 0, "T": 0, "M": NCH, "S": 2, "L": 3, "W": 1, "D": 1, "N": 0}
     if c not in want:
         raise ValueError("unknown command")
+    if c == "N":
+        if len(nums) > 1 or (nums and nums[0] not in (1, 2)):
+            raise ValueError("side must be 1 (right) or 2 (left)")
+        return c, nums
     if len(nums) != want[c]:
         raise ValueError("wrong argument count")
     if c in ("S", "L") and not 0 <= nums[0] < NCH:

@@ -123,3 +123,33 @@ def test_watchdog_timeout_is_settable_and_boot_reports_reset():
     assert d.state == "RUN"              # 400 ms of silence is fine with a 500 ms timeout
     d.advance(0.2)
     assert d.state == "WATCHDOG"
+
+
+def test_board_side_is_named_and_checked(tmp_path, monkeypatch):
+    from hand import link as L
+    d = FakeESP32()
+    d.write("N\n")
+    assert d.lines()[-1] == "OK N unset"
+    d.write("N 2\n")
+    assert d.lines()[-1] == "OK N left"
+    with pytest.raises(ValueError):
+        protocol.parse_command("N 3")
+    # HandLink names an unset board after the side it was opened for...
+    link = HandLink.open(port="", side="left")
+    assert link.fake.side == "left" and link.cfg.side == "left"
+    # ...and refuses a board that belongs to the other hand
+    monkeypatch.setattr(L.FakeESP32, "__init__", _left_board_init(L.FakeESP32.__init__))
+    with pytest.raises(RuntimeError, match="left hand, not the right"):
+        HandLink.open(port="", side="right")
+
+
+def _left_board_init(orig):
+    def init(self, *a, **k):
+        orig(self, *a, **k)
+        self.side = "left"
+    return init
+
+
+def test_calibration_file_per_side():
+    assert config.cal_path("right").endswith("hand_calibration.json")
+    assert config.cal_path("left").endswith("hand_calibration_left.json")

@@ -3,6 +3,7 @@
     .venv/Scripts/python tools/servo_bench.py doa COM5          # dead-on-arrival test, one channel at a time
     .venv/Scripts/python tools/servo_bench.py range COM5 1      # find channel 1's usable pulse range by hand
     .venv/Scripts/python tools/servo_bench.py show              # print hand_calibration.json
+    add --side left to any of these for the second hand (its own board and calibration file)
 
 BEFORE ANYTHING: power supply set to 6.0 V on its display, 2200 uF cap across PCA9685 V+/GND (stripe to GND),
 ESP32 GND tied to supply GND, servos WITHOUT horns/tendons attached for the DOA test. Never leave it powered
@@ -80,8 +81,8 @@ def getch():
         return input()[:1]
 
 
-def find_range(port, ch):
-    cfg = config.load()
+def find_range(port, ch, side="right"):
+    cfg = config.load(side=side)
     s = cfg.servos[ch]
     tr = open_port(port)
     tr.write(protocol.limit(ch, 600, 2400))   # wide clamp only while YOU are driving it by hand
@@ -104,7 +105,7 @@ def find_range(port, ch):
                 cfg.save()
                 lo, hi = sorted((s.us_open, s.us_closed))
                 tr.write(protocol.limit(ch, lo, hi))
-                print(f"\nsaved to {config.CAL_PATH}; firmware clamp for ch{ch} now {lo}..{hi}")
+                print(f"\nsaved to {config.cal_path(side)}; firmware clamp for ch{ch} now {lo}..{hi}")
                 return
             elif k == "x":
                 print("\naborted, nothing saved")
@@ -114,11 +115,16 @@ def find_range(port, ch):
 
 
 def main():
+    side = "right"
+    if "--side" in sys.argv:                          # --side left for the second hand's board
+        i = sys.argv.index("--side")
+        side = sys.argv[i + 1]
+        del sys.argv[i:i + 2]
     if len(sys.argv) < 2 or sys.argv[1] not in ("doa", "range", "show"):
         print(__doc__)
         return
     if sys.argv[1] == "show":
-        for s in config.load().servos:
+        for s in config.load(side=side).servos:
             print(f"ch{s.channel} {s.name:7s} open {s.us_open} us  closed {s.us_closed} us  v_max {s.v_max}  tau {s.tau}")
         return
     port = sys.argv[2] if len(sys.argv) > 2 else ""
@@ -126,7 +132,7 @@ def main():
         if sys.argv[1] == "doa":
             doa(port)
         else:
-            find_range(port, int(sys.argv[3]))
+            find_range(port, int(sys.argv[3]), side)
     except KeyboardInterrupt:
         print("\nstopped (E sent)")
 

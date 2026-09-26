@@ -32,6 +32,7 @@ class FakeESP32:
         self.last_rx = 0.0
         self.out = deque(["BOOT hand-esp32 " + protocol.VERSION + " reset=POWERON"])
         self.watchdog_s = WATCHDOG_S
+        self.side = "unset"
         self.stop = None          # per-joint obstacle flexion (set by a scene), NaN = free
 
     # ---- serial-like interface ----
@@ -78,6 +79,10 @@ class FakeESP32:
             if self.state in ("ESTOP", "WATCHDOG"):
                 self._start()
             self.out.append("OK R")
+        elif c == "N":
+            if a:
+                self.side = "right" if a[0] == 1 else "left"
+            self.out.append(f"OK N {self.side}")
         elif c == "D":
             self.watchdog_s = min(max(a[0], 100), 2000) / 1000.0
             self.out.append(f"OK D {int(self.watchdog_s * 1000)}")

@@ -156,6 +156,16 @@ void handle(char* s) {
       if (argc) goto badcount;
       if (state == ESTOP || state == WATCHDOG) { startRun(); }
       Serial.println("OK R"); return;
+    case 'N': {                           // which hand is this board: N 1 = right, N 2 = left, N = ask
+      if (argc > 1) goto badcount;
+      if (argc == 1) {
+        if (a[0] != 1 && a[0] != 2) { Serial.println("ERR side must be 1 (right) or 2 (left)"); return; }
+        prefs.begin("hand", false); prefs.putUChar("side", (uint8_t)a[0]); prefs.end();
+      }
+      prefs.begin("hand", true); uint8_t side = prefs.getUChar("side", 0); prefs.end();
+      Serial.printf("OK N %s\n", side == 1 ? "right" : side == 2 ? "left" : "unset");
+      return;
+    }
     case 'D':
       if (argc != 1) goto badcount;
       watchdogMs = constrain(a[0], 100, 2000); savePrefs(); Serial.printf("OK D %lu\n", (unsigned long)watchdogMs); return;

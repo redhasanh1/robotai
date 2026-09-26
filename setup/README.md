@@ -76,6 +76,14 @@ GPL license): `.venv\Scripts\python tools\fetch_inmoov_meshes.py`. Without it th
 9. Before any tendon goes on: bend every printed finger by hand. A stiff hinge makes the servo stall and get hot.
 10. **Never leave it powered while you're away.** There's no fuse on this build.
 
+## Two hands
+
+Same firmware on both ESP32 boards. Put a sticker on each board (R / L). The first time a board is used, the tool
+you run names it after `--side` (right is the default) and keeps it in the board's memory. After that, opening the
+wrong board for a hand is refused ("this board is the left hand, not the right hand - wrong COM port?").
+Every tool takes `--side left` for the second hand, and each hand has its own calibration file
+(`hand_calibration.json` right, `hand_calibration_left.json` left).
+
 ## 6. Run the brain on the real hand
 
 `.venv\Scripts\python tools\run_hand.py COM5 ball --cam 0`: same brain as the sim. You put the object in the

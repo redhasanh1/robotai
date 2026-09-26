@@ -29,8 +29,9 @@ def main():
     ap.add_argument("object")
     ap.add_argument("--cam", type=int, default=None)
     ap.add_argument("--n", type=int, default=8)
+    ap.add_argument("--side", default="right", choices=("right", "left"))
     a = ap.parse_args()
-    link = HandLink.open(port="" if a.port == "fake" else a.port)
+    link = HandLink.open(port="" if a.port == "fake" else a.port, side=a.side)
     world = HardwareWorld(link, camera=a.cam, recorder=Recorder(os.path.join(ROOT, "logs", "episodes")),
                           task=f"pick up the {a.object}", obj=a.object)   # every attempt saved for post-training
     b = brain.make(os.environ.get("BRAIN", "stub:instant"))

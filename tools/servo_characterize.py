@@ -51,9 +51,9 @@ class RealCam:
         return vision.marker_angle(img, HORN_ID) if ok else None
 
 
-def run(port, ch, cam_index, seconds=20.0, dt=0.03):
+def run(port, ch, cam_index, seconds=20.0, dt=0.03, side="right"):
     fake = port in ("", "fake")
-    link = HandLink.open(port="" if fake else port)
+    link = HandLink.open(port="" if fake else port, side=side)
     cam = FakeCam(link, ch) if fake else RealCam(cam_index)
     n = int(seconds / dt)
     _, cmds = sysid.excite(n, dt, seed=ch)
@@ -105,14 +105,15 @@ def main():
     ap.add_argument("channel", type=int)
     ap.add_argument("--cam", type=int, default=0)
     ap.add_argument("--seconds", type=float, default=20.0)
+    ap.add_argument("--side", default="right", choices=("right", "left"))
     a = ap.parse_args()
     os.makedirs(os.path.join(ROOT, "logs"), exist_ok=True)
     import cv2
     cv2.imwrite(os.path.join(ROOT, "logs", "horn_marker.png"), vision.marker_image(HORN_ID, 400))
-    cfg = config.load()
+    cfg = config.load(side=a.side)
     s = cfg.servos[a.channel]
     print(f"channel {a.channel} ({s.name}) datasheet: v_max {s.v_max}  tau {s.tau}  backlash {s.backlash}")
-    r = run(a.port, a.channel, a.cam, a.seconds)
+    r = run(a.port, a.channel, a.cam, a.seconds, side=a.side)
     if not r or "v_max" not in r:
         print("no fit")
         return
@@ -123,7 +124,7 @@ def main():
         cfg.save()
         with open(os.path.join(ROOT, "logs", "servo_curves.jsonl"), "a") as f:
             f.write(json.dumps({"t": time.time(), "channel": a.channel, **r}) + "\n")
-        print(f"saved to {config.CAL_PATH} (history in logs/servo_curves.jsonl for the drift plot)")
+        print(f"saved to {config.cal_path(a.side)} (history in logs/servo_curves.jsonl for the drift plot)")
 
 
 if __name__ == "__main__":
