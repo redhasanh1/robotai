@@ -220,9 +220,20 @@ PROMPTS = [
 ]
 assert len(PROMPTS) == 50
 
-# what the room looks like when the prompt is given - perceived facts the camera would report, not hints. A person who
-# says "I spilled something" has a puddle on the table; the robot should be able to see it (results/house.md).
-SCENES = {"I spilled something in the living room": {"living room": "a sticky puddle and some crumbs"}}
+# the room when the prompt is given: which counters have a stain on them (sim ground truth). The robot is NOT told this -
+# its counter cameras see it (hand/perceive.py) and describe it; that description is all the planner gets.
+SCENES = {"I spilled something in the living room": {"living room"}}
+_EYES = {}
+
+
+def seen_messes(m, rooms):
+    """Put stains on these counters, then look: -> {room: what the camera saw}. Eyes learn the clean house once."""
+    from . import perceive
+    if id(m) not in _EYES:
+        perceive.set_messes(m, ())
+        _EYES[id(m)] = perceive.Eyes(m).learn()
+    perceive.set_messes(m, rooms or ())
+    return _EYES[id(m)].survey()
 
 
 HIGH_LEVEL = ("go", "pick", "put_in", "put_on", "give", "wipe", "pass", "toss", "point", "look", "wave", "box",
@@ -373,6 +384,7 @@ def score(m, brain=None, say=print, only=None):
     for i, (p, check) in enumerate(PROMPTS):
         if only and i not in only:
             continue
+        messes = seen_messes(m, SCENES.get(p)) if SCENES.get(p) or id(m) in _EYES else None     # clears old stains too
         prog, unknown = plan(p)
         how = "rules"
         if unknown:
@@ -381,13 +393,13 @@ def score(m, brain=None, say=print, only=None):
                 say(f"[{i + 1:2d}] --   not understood (no AI): {p}")
                 continue
             try:
-                extra, _ = think(", ".join(unknown), m, brain, say=lambda s: None, messes=SCENES.get(p))
+                extra, _ = think(", ".join(unknown), m, brain, say=lambda s: None, messes=messes)
             except Exception as e:                    # brain died: count it as not understood
                 extra = []
                 say(f"      AI error {type(e).__name__}")
             prog += extra
             how = "rules+AI" if len(prog) > len(extra) else "AI"
-        body = home.HomeBody(m, SCENES.get(p)).run(prog)
+        body = home.HomeBody(m, messes).run(prog)
         ok = bool(prog) and bool(check(body))
         rows.append({"prompt": p, "how": how, "passed": ok, "problems": body.problems[:3],
                      "program": prog, "seconds": round(sum(f[0] for f in body.frames), 1)})

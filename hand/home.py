@@ -16,6 +16,7 @@ come later, so it drives rather than walks.
 """
 import re
 
+import mujoco
 import numpy as np
 
 from . import motor, reach
@@ -50,6 +51,8 @@ OBJECTS = {  # room, local (x, y), geom type, size, rgba, half height, kind
 FREE_SPOTS = [(-0.12, -0.27), (0.12, -0.27), (0.0, -0.26), (-0.06, -0.34), (0.06, -0.34), (-0.18, -0.33),
               (0.18, -0.33), (-0.34, -0.27), (0.34, -0.27)]
 DRIVE_V, TURN_V = 0.6, 1.5
+STAIN_SPOT, STAIN_R = (-0.12, -0.42), 0.045    # clear of every object and container in all three rooms
+LOOK_H = 0.7                                   # counter camera height above the counter top
 
 
 def to_world(room_or_pose, local):
@@ -78,12 +81,19 @@ def scene_xml():
         yaw = ROOMS[room][2]
         colour = {"kitchen": "0.45 0.35 0.28 1", "laundry": "0.5 0.55 0.6 1", "living room": "0.4 0.3 0.25 1"}[room]
         out.append(f'<body name="counter_{room.replace(" ", "_")}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z / 2}" '
-                   f'euler="0 0 {np.degrees(yaw):.1f}"><geom type="box" size="0.46 0.14 {TABLE_Z / 2}" '
+                   f'euler="0 0 {yaw:.4f}"><geom type="box" size="0.46 0.14 {TABLE_Z / 2}" '
                    f'rgba="{colour}"/></body>')
+        # a stain decal (hidden under the floor until perceive.set_messes shows it) and a camera looking straight down
+        # at the counter: the robot learns about messes from pixels, not from being told (hand/perceive.py)
+        s = to_world(room, STAIN_SPOT)
+        tag = room.replace(" ", "_")
+        out.append(f'<geom name="mess_{tag}" type="cylinder" size="{STAIN_R} 0.0015" pos="{s[0]:.3f} {s[1]:.3f} -1" '
+                   f'rgba="0.3 0.18 0.05 1" contype="0" conaffinity="0"/>')
+        out.append(f'<camera name="look_{tag}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z + LOOK_H:.3f}" fovy="60"/>')
     for name, (room, loc, half, rgba) in CONTAINERS.items():
         c = to_world(room, loc)
-        yaw = np.degrees(ROOMS[room][2])
-        out.append(f'<body name="cont_{name}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z + half[2]:.3f}" euler="0 0 {yaw:.1f}">'
+        yaw = ROOMS[room][2]                    # radians: the InMoov model compiles with angle="radian"
+        out.append(f'<body name="cont_{name}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z + half[2]:.3f}" euler="0 0 {yaw:.4f}">'
                    f'<geom type="box" size="{half[0]} {half[1]} {half[2]}" rgba="{rgba}"/></body>')
     out.append(f'<body name="person" pos="{PERSON[0]} {PERSON[1]} 0.85"><geom type="capsule" size="0.16 0.6" '
                f'rgba="0.55 0.6 0.75 1"/><geom type="sphere" size="0.11" pos="0 0 0.78" rgba="0.85 0.72 0.6 1"/></body>')
@@ -325,6 +335,9 @@ class HomeBody(motor.Body):
                 self.move(side, self._local_xyz((lx, ly), TABLE_Z + 0.05), 0.5, why="wipe")
         self.wiped.add(room)
         self.messes.pop(room, None)
+        g = mujoco.mj_name2id(self.m, mujoco.mjtObj.mjOBJ_GEOM, "mess_" + room.replace(" ", "_"))
+        if g >= 0:                                    # the stain decal goes too, so the viewer shows a clean counter
+            self.m.geom_pos[g][2] = -1.0
         back = home[1] if home[0] == "on" else "kitchen"
         self.put_on("sponge", back)
 

@@ -41,6 +41,38 @@ Perception fixed the attention (it went to the right room, for the right reason)
 does not use repair feedback: given the problem list it returns its first plan again. The body check, the repair loop
 and the facts are all in place. A model that reads its own errors is the missing part.
 
+**One-step repair** (Kimi round 9, `splice_repair` in home_tasks.py): instead of "rewrite the program", the failing step
+gets a short list of replacements that were each run on the body first, and the model picks a number. Physics veto,
+then the AI chooses - the grasp pipeline's pattern applied to plans. With a stand-in brain it turns the spill plan
+into a wipe; **not yet measured with the real model** (the run was killed for low RAM).
+Found on the way: the body labelled every pick/give/point error "step 1", so every repair prompt before this pointed the
+model at the wrong step.
+
+### Seeing the mess (hand/perceive.py)
+
+The stain is no longer handed to the planner as text. Each counter has a camera looking straight down (RGB + depth).
+The robot looks once at the clean house and remembers it; afterwards a mess is **a new hue at the same depth**:
+
+- same depth: a stain is 3 mm thick, so the surface is where it was. Objects put down or picked up change depth and are
+  ignored.
+- new hue, not only new brightness: a shadow darkens the surface but keeps its r:g:b proportions; a spill changes them.
+  Measured: stains shift hue by 13-35 (median, x255), shadows of moved objects by 4-10.
+
+![clean memory | now | detected](figures/mess_perception.png)
+
+| test | result |
+|---|---|
+| clean house | nothing seen |
+| stain on 1, 2 or all 3 counters | the right counters, "a dark stain about 9 cm across" (true diameter 9 cm) |
+| each of the 11 objects moved 10 cm either way or lifted 0.5 m (33 moves) | 1 false stain: the sponge lifted 0.5 m above the counter |
+
+The spill prompt now gets "living room surface: a dark stain about 9 cm across" from pixels. Wiping removes the decal.
+Same rule on the real robot needs a depth camera and one "clean" snapshot per counter.
+
+Also fixed: the house was built with `euler` in degrees but the InMoov model compiles angles in radians, so every counter
+and container was drawn at a random-looking angle, with the objects floating next to it. Plans were never affected (the
+arms use the room maths, not the drawn boxes), but the house tour looked wrong.
+
 The 3 judgement calls: "put everything that belongs in the kitchen back in the kitchen", "get the dirty clothes out of
 the way", "I spilled something in the living room".
 
