@@ -212,7 +212,8 @@ PROMPTS = [
     ("move the ball to the kitchen and juggle it", _on("ball", "kitchen")),
     # need real thinking - the rules alone will not get these (the AI's job)
     ("put everything that belongs in the kitchen back in the kitchen", _on("soda can", "kitchen")),
-    ("get the dirty clothes out of the way", _all(_in("red shirt", "washer"), _in("white shirt", "washer"))),
+    ("get the dirty clothes out of the way",               # washer or laundry basket are both sensible
+     lambda b: all(b.where[o] in (("in", "washer"), ("in", "basket")) for o in ("red shirt", "white shirt"))),
     ("make the counter in the kitchen clean and put the fruit in the living room", _all(
         lambda b: "kitchen" in b.wiped, _on("apple", "living room"))),
     ("I spilled something in the living room", lambda b: "living room" in b.wiped),
@@ -226,9 +227,43 @@ def actions_doc():
             motor.__doc__[motor.__doc__.index("Actions"):])
 
 
-def think(command, m, brain, rounds=2, say=print):
-    """AI writes a home program, the body checks it, the AI repairs it."""
+EXAMPLES = [  # (request, program) the robot already knows works - its experience, shown to the AI in context
+    ("I spilled coffee on the kitchen counter", [{"do": "wipe", "room": "kitchen"}]),
+    ("take the empty soda can out of the living room", [{"do": "put_on", "obj": "soda can", "room": "kitchen"}]),
+    ("the dirty laundry is everywhere", [{"do": "put_in", "obj": "red shirt", "into": "washer"},
+                                         {"do": "put_in", "obj": "white shirt", "into": "washer"}]),
+    ("the dishes are dirty", [{"do": "put_in", "obj": "cup", "into": "sink"},
+                              {"do": "put_in", "obj": "plate", "into": "sink"}]),
+    ("the fruit should be where people sit", [{"do": "put_on", "obj": "apple", "room": "living room"}]),
+    ("I'm cold and wet", [{"do": "give", "obj": "towel"}]),
+]
+
+
+def _words(s):
+    return set(re.findall(r"[a-z]+", s.lower())) - {"the", "a", "an", "to", "in", "on", "of", "and", "i", "my", "it"}
+
+
+def examples_for(command, k=4, hints=False):
+    """Most similar known tasks, by word overlap: the prompts the robot already solves (its experience), plus the
+    hand-written EXAMPLES only when hints=True. The EXAMPLES paraphrase the three judgement-call test prompts, so
+    a score with hints is a ceiling, not a fair result."""
+    pool = list(EXAMPLES) if hints else []                   # hints = hand-written; off for a fair score
+    for p, _ in PROMPTS:
+        prog, unknown = plan(p)
+        if prog and not unknown:
+            pool.append((p, prog))
+    cw = _words(command)
+    pool.sort(key=lambda e: len(cw & _words(e[0])), reverse=True)
+    return pool[:k]
+
+
+def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False):
+    """AI writes a home program, the body checks it, the AI repairs it. With use_examples the most similar tasks
+    the robot already knows are put in the prompt (in-context learning - no training)."""
     world = home.describe_world(home.HomeBody(m))
+    if use_examples:
+        world += "\n\nTasks you have done before (request -> program that worked):\n" + "\n".join(
+            f'- "{r}" -> {json.dumps(p)}' for r, p in examples_for(command, hints=hints) if r != command)
     doc = actions_doc()
     reply = brain.program(command, world, doc)
     prog = reply.get("program") or []

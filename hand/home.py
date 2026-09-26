@@ -14,6 +14,8 @@ positions below are in that parked frame (x = robot's left, y = forward is negat
 hall (0, 0) between rooms at 0.6 m/s and turns at 1.5 rad/s. This is the wheeled base from the build plan - legs
 come later, so it drives rather than walks.
 """
+import re
+
 import numpy as np
 
 from . import motor, reach
@@ -144,7 +146,9 @@ class HomeBody(motor.Body):
 
     # ---- moving around
     def go(self, room):
-        room = {"living": "living room", "lounge": "living room", "person": "you", "me": "you"}.get(room, room)
+        room = re.sub(r"\s+(counter|table|area|room)$", "", room) if room not in ROOMS else room
+        room = {"living": "living room", "lounge": "living room", "person": "you", "me": "you",
+                "laundry room": "laundry"}.get(room, room)
         if room not in ROOMS:
             return self.problems.append(f"go: no place called '{room}' (kitchen, laundry, living room, you)")
         if room == self.room:
@@ -351,10 +355,38 @@ class HomeBody(motor.Body):
             turn = float(np.clip(-np.arctan2(loc[0], 0.5), -0.34, 0.34))
             self.frames.append((1.0, {**self._pose(), motor.TURN: turn}, None))
 
+    def _hand_xyz(self, side):
+        import mujoco
+        d = mujoco.MjData(self.m)
+        for n, v in {**self.arm_q[side], "base_x": self.base[0], "base_y": self.base[1],
+                     "base_yaw": self.base[2]}.items():
+            d.qpos[self.m.jnt_qposadr[self.m.joint(n).id]] = v
+        mujoco.mj_forward(self.m, d)
+        return d.xpos[self.m.body(reach.palm(side)).id].copy()
+
+    def grip_cmd(self, hand, amount):
+        super().grip_cmd(hand, amount)
+        for side, o in self.held.items():                     # keep the home's bookkeeping in step
+            if o and self.where[o][0] != "held":
+                if self.where[o][0] == "in":
+                    self.filled[self.where[o][1]] -= 1
+                self.where[o] = ("held", side)
+        for o in OBJECTS:
+            if self.where[o][0] == "held" and self.held.get(self.where[o][1]) != o:
+                self.where[o] = ("on", self.room if self.room in ROOMS and self.room != "you" else "living room")
+
     def push(self, o, d):
         self.problems.append("push: not in the home yet (use put_on / put_in)")
 
     def run(self, program, finish=True):
+        saved = motor.OBJ                     # motor.Body's generic actions look up object sizes here
+        motor.OBJ = {o: (v[2], v[3], v[4], v[5]) for o, v in OBJECTS.items()}
+        try:
+            return self._run(program, finish)
+        finally:
+            motor.OBJ = saved
+
+    def _run(self, program, finish=True):
         extra = {"go": lambda a: self.go(str(a.get("to", "")).lower()),
                  "put_in": lambda a: self.put_in(a.get("obj"), a.get("into")),
                  "put_on": lambda a: self.put_on(a.get("obj"), str(a.get("room", self.room)).lower()),
