@@ -101,15 +101,20 @@ def describe_world(body):
         lines.append(f"- {o} ({OBJECTS[o][6]}): " + {"in": f"in the {w[1]}", "on": f"on the {w[1]} counter",
                                                       "held": f"in the robot's {w[1]} hand",
                                                       "given": "with the person"}[w[0]])
+    seen = [f"- {r} surface: {what}" for r, what in body.messes.items()] or ["- nothing dirty in view"]
     return ("Rooms: kitchen (sink, rack), laundry (washer, basket), living room (table), and the person.\n"
-            f"The robot is at: {body.room}.\nObjects:\n" + "\n".join(lines))
+            f"The robot is at: {body.room}.\nObjects:\n" + "\n".join(lines) +
+            "\nWhat the camera sees on the surfaces:\n" + "\n".join(seen))
 
 
 class HomeBody(motor.Body):
     """motor.Body on a wheeled base in the home. World coordinates everywhere; IK knows where the base is."""
 
-    def __init__(self, m):
+    def __init__(self, m, messes=None):
         super().__init__(m)
+        # perceived facts, what the camera would report ({room: "sticky puddle"}): the planner can only reason about
+        # dirt it is told about (results/house.md: without this, "I spilled something" was a guess)
+        self.messes = dict(messes or {})
         self.base = (0.0, 0.0, 0.0)
         self.room = "hall"
         self.pos, self.where = {}, {}
@@ -180,10 +185,18 @@ class HomeBody(motor.Body):
             return CONTAINERS[w[1]][0]
         return None
 
+    def _mess_note(self, o):
+        """Grasping a mess fails the way it would for real - nothing solid to close on. Say so, the way a failed
+        grasp would, so the repair round knows what kind of thing it tried to pick."""
+        for room, what in self.messes.items():
+            if any(w and w in what for w in str(o).lower().split()):
+                return f" - the {o} is part of the mess on the {room} surface, nothing solid to grasp"
+        return ""
+
     # ---- skills (world coordinates)
     def pick(self, o, hand="auto"):
         if o not in self.pos:
-            return self.problems.append(f"pick: there is no {o}")
+            return self.problems.append(f"pick: there is no {o}" + self._mess_note(o))
         if self.where[o][0] == "held":
             return
         if self.where[o][0] == "given":
@@ -311,6 +324,7 @@ class HomeBody(motor.Body):
             for lx in (xs if k % 2 == 0 else xs[::-1]):
                 self.move(side, self._local_xyz((lx, ly), TABLE_Z + 0.05), 0.5, why="wipe")
         self.wiped.add(room)
+        self.messes.pop(room, None)
         back = home[1] if home[0] == "on" else "kitchen"
         self.put_on("sponge", back)
 

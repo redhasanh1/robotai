@@ -220,6 +220,10 @@ PROMPTS = [
 ]
 assert len(PROMPTS) == 50
 
+# what the room looks like when the prompt is given - perceived facts the camera would report, not hints. A person who
+# says "I spilled something" has a puddle on the table; the robot should be able to see it (results/house.md).
+SCENES = {"I spilled something in the living room": {"living room": "a sticky puddle and some crumbs"}}
+
 
 HIGH_LEVEL = ("go", "pick", "put_in", "put_on", "give", "wipe", "pass", "toss", "point", "look", "wave", "box",
               "clap", "nod", "shake", "say", "wait")
@@ -280,10 +284,10 @@ def examples_for(command, k=4, hints=False):
     return pool[:k]
 
 
-def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False, situate=False):
+def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False, situate=False, messes=None):
     """AI writes a home program, the body checks it, the AI repairs it. With use_examples the most similar tasks
     the robot already knows are put in the prompt (in-context learning - no training)."""
-    world = home.describe_world(home.HomeBody(m))
+    world = home.describe_world(home.HomeBody(m, messes))
     if use_examples:
         world += "\n\nTasks you have done before (request -> program that worked):\n" + "\n".join(
             f'- "{r}" -> {json.dumps(p)}' for r, p in examples_for(command, hints=hints) if r != command)
@@ -299,7 +303,7 @@ def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False
         low = [f"step {i + 1}: '{a.get('do')}' is not allowed - use only: {', '.join(HIGH_LEVEL)}"
                for i, a in enumerate(prog) if isinstance(a, dict) and a.get("do") not in HIGH_LEVEL]
         prog = [a for a in prog if isinstance(a, dict) and a.get("do") in HIGH_LEVEL]      # drop, and say so
-        problems = low + (home.HomeBody(m).run(prog).problems if prog else ["the program was empty"])
+        problems = low + (home.HomeBody(m, messes).run(prog).problems if prog else ["the program was empty"])
         say(f"  {'plan' if r == 0 else f'repair {r}'}: {len(prog)} steps" +
             (f", problems: {'; '.join(problems[:2])}" if problems else ", checks out on the body"))
         if not problems or r == rounds:
@@ -322,13 +326,13 @@ def score(m, brain=None, say=print, only=None):
                 say(f"[{i + 1:2d}] --   not understood (no AI): {p}")
                 continue
             try:
-                extra, _ = think(", ".join(unknown), m, brain, say=lambda s: None)
+                extra, _ = think(", ".join(unknown), m, brain, say=lambda s: None, messes=SCENES.get(p))
             except Exception as e:                    # brain died: count it as not understood
                 extra = []
                 say(f"      AI error {type(e).__name__}")
             prog += extra
             how = "rules+AI" if len(prog) > len(extra) else "AI"
-        body = home.HomeBody(m).run(prog)
+        body = home.HomeBody(m, SCENES.get(p)).run(prog)
         ok = bool(prog) and bool(check(body))
         rows.append({"prompt": p, "how": how, "passed": ok, "problems": body.problems[:3],
                      "program": prog, "seconds": round(sum(f[0] for f in body.frames), 1)})

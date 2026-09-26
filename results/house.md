@@ -28,6 +28,19 @@ is told what objects are where, not that anything is dirty, so the model explain
 and tidies. A person would look at the floor. The fix is perception (camera / scene state reports messes), not a
 smarter prompt. Rules only passes it because a rule maps "spill" to wipe. Scoring the AI on it is testing a guess.
 
+So the world now has perceived messes (`HomeBody(m, messes={room: "..."})`, `SCENES` in home_tasks.py): the world text
+lists "What the camera sees on the surfaces", and wipe clears the mess. The spill prompt's scene has "a sticky puddle
+and some crumbs" on the living room table.
+
+| change | passed | what happened |
+|---|---|---|
+| + perceived mess in the world text | 48/50 | the model now goes to the living room for the mess - and tries `pick crumbs` |
+| + body check explains a failed grasp on a mess ("part of the mess on the surface, nothing solid to grasp") | 48/50 | same `pick crumbs` plan, **word for word, in all 3 rounds** |
+
+Perception fixed the attention (it went to the right room, for the right reason). What's left is that the 3B model
+does not use repair feedback: given the problem list it returns its first plan again. The body check, the repair loop
+and the facts are all in place. A model that reads its own errors is the missing part.
+
 The 3 judgement calls: "put everything that belongs in the kitchen back in the kitchen", "get the dirty clothes out of
 the way", "I spilled something in the living room".
 

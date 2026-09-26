@@ -27,3 +27,11 @@ def test_verb_carries_over_and():
         {"do": "put_in", "obj": "cup", "into": "sink"}, {"do": "put_in", "obj": "plate", "into": "rack"}]
     assert H.plan("bring me the remote and the soda can")[0] == [{"do": "give", "obj": "remote"},
                                                                  {"do": "give", "obj": "soda can"}]
+
+
+def test_mess_is_seen_and_wiped():
+    b = home.HomeBody(M, {"living room": "a sticky puddle"})
+    assert "living room surface: a sticky puddle" in home.describe_world(b)
+    b.run([{"do": "wipe", "room": "living room"}])
+    assert "living room" in b.wiped and not b.messes, b.problems
+    assert "nothing dirty in view" in home.describe_world(b)
