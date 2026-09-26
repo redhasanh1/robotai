@@ -20,3 +20,15 @@ What it means for the build:
 5. The fingertip curls first; the base joint lags (0.15 rad at full pull in the trace) - expect grasps to look hooked.
 
 Limit: extra PTFE drag and a tight hinge change nothing here - with two taut, stiff lines the pose is set by the strings, and friction would only show once there is slack. Validate against the real finger in week 2.
+
+# Grey-box plant on the tendon finger (tools/tendon_to_greybox.py)
+
+The tendon-level finger (hand/tendon_sim.py) driven through the servo model stands in for the real finger; 20 s excitation to fit, 15 s of new commands to test.
+
+| model | error on new commands |
+|---|---|
+| datasheet plant | 6.4 deg |
+| sysid-fitted plant (v_max 3.47, tau 0.074, backlash 0.035) | 6.6 deg |
+| fitted plant + learned residual | **1.4 deg** |
+
+Fitting the speed/lag/slack parameters does not help: that structure cannot express how a tendon finger curls (tip first, non-linear flexion vs horn, stops at 94%). The learned residual is what covers it - the tendon model is the argument for keeping it.

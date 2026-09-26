@@ -119,5 +119,6 @@ def excite(n_steps=4000, dt=0.01, seed=0, n_joints=6):
             big = rng.random(n_joints) < 0.5
             cur = np.where(big, rng.uniform(0, 1, n_joints), np.clip(cur + rng.normal(0, 0.08, n_joints), 0, 1))
         cmd[k] = cur
-    cmd[:, 5] = cmd[:, 5] * 2 - 1                    # wrist spans -1..1
+    if n_joints > 5:
+        cmd[:, 5] = cmd[:, 5] * 2 - 1                # wrist spans -1..1
     return np.arange(n_steps) * dt, cmd
