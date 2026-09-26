@@ -34,6 +34,27 @@
     <ol class="arm-parts" id="arm-parts"></ol>
   </section>
   <p class="muted legend"><span class="pill owned">owned</span> already bought · <span class="pill pending">pending</span> final pick in progress · everything else is printed at school</p>
+
+  <section class="hand-fit">
+    <div class="section-head">
+      <h2>How the hand fits together</h2>
+      <p class="muted">The right forearm, wrist and hand we're printing first. Press <b>Take apart</b> to pull every piece away from the others, then put it back together. Hover a piece to see what it is. The left hand is a mirror copy.</p>
+    </div>
+    <div class="arm-stage hand-stage" id="hand3d">
+      <span class="arm-status" id="hand3d-status">Loading the hand…</span>
+      <span class="hand-tip" id="hand-tip" hidden></span>
+      <div class="hand-controls">
+        <button id="hand-play" type="button" disabled>Take apart</button>
+        <label class="muted">together <input id="hand-slider" type="range" min="0" max="1" step="0.001" value="0" disabled aria-label="How far apart"> apart</label>
+      </div>
+    </div>
+    <ul class="hand-facts">
+      <li><b>Forearm</b> 11 printed pieces. The 5 finger servos sit on the servo bed inside it and pull the tendons.</li>
+      <li><b>Wrist</b> 5 pieces: a geared ring turned by one more servo.</li>
+      <li><b>Hand</b> 11 pieces: palm halves, back covers and 5 fingers, each finger hinged on M3 bolts.</li>
+      <li><b>Tendons</b> 200 lb braided line, two per finger (one closes it, one opens it), running through PTFE tube.</li>
+    </ul>
+  </section>
 </main>
 
 <footer class="wrap muted">robotai · Toronto · open source · <a href="https://github.com/redhasanh1/robotai">edit on GitHub</a><br>Credits: InMoov by Gael Langevin (inmoov.fr) · InMoov URDF by Sentience Robotics (GPL-3.0) · legs designed by robotai in Blender</footer>
@@ -45,6 +66,7 @@
 } }
 </script>
 <script type="module" src="/robot3d.js"></script>
+<script type="module" src="/hand3d.js"></script>
 <script src="/app.js"></script>
 </body>
 </html>
