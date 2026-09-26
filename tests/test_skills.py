@@ -7,9 +7,9 @@ HIDE = [{"do": "put_in", "obj": "remote", "into": "basket"}]
 
 
 def test_template_turns_named_objects_into_slots():
-    assert skills.template("Please hide the remote") == ("hide {0}", ["remote"])
+    assert skills.template("Please hide the remote") == ("hide {0}", ["remote"], [])
     assert skills.template("move the soda can and the towel to the kitchen") == \
-        ("move {0} and {1} to kitchen", ["soda can", "towel"])
+        ("move {0} and {1} to {r0}", ["soda can", "towel"], ["kitchen"])
 
 
 def test_one_success_is_trusted_one_failure_is_not():
@@ -43,3 +43,15 @@ def test_reuse_is_body_checked():
     lib.skills["hide {0}"]["program"] = [{"do": "put_in", "obj": "{0}", "into": "oven"}]     # no oven in this house
     prog, how, _, _ = H.do_task("hide the book", M, None, lib, say=lambda s: None)
     assert how == "not understood"
+
+
+def test_rooms_are_slots_unless_the_room_chose_the_objects():
+    lib = skills.Library()
+    lib.learn("set the table in the living room", [{"do": "put_on", "obj": "cup", "room": "living room"},
+                                                   {"do": "put_on", "obj": "plate", "room": "living room"}], True)
+    assert [a["room"] for a in lib.recall("set the table in the kitchen")["program"]] == ["kitchen", "kitchen"]
+    lib.learn("clear the living room table", [{"do": "put_on", "obj": o, "room": "kitchen"}
+                                              for o in ("book", "remote", "soda can")] +
+              [{"do": "put_in", "obj": "ball", "into": "basket"}], True)
+    assert lib.recall("clear the living room table") is not None
+    assert lib.recall("clear the laundry counter") is None      # those objects were picked because of the room

@@ -6,7 +6,7 @@ Pass 1 programs come from a SCRIPTED TEACHER in pass 1 (measures the library, no
 |---|---|---|---|---|---|
 | 1 first time | 7 | 7/7 | 7 | 0 | 0 |
 | 2 again | 7 | 7/7 | 0 | 0 | 7 |
-| 3 new wording/objects | 6 | 4/6 | 6 | 0 | 4 |
+| 3 new wording/objects | 6 | 5/6 | 3 | 0 | 5 |
 
 | pass | request | how | done | calls |
 |---|---|---|---|---|
@@ -28,15 +28,16 @@ Pass 1 programs come from a SCRIPTED TEACHER in pass 1 (measures the library, no
 | 3 | please hide the soda can | own skill | yes | 0 |
 | 3 | hide the apple | own skill | yes | 0 |
 | 3 | put the book away | own skill | yes | 0 |
-| 3 | set the table in the kitchen | AI | no | 3 |
+| 3 | set the table in the kitchen | own skill | yes | 0 |
 | 3 | clear the laundry counter | AI | no | 3 |
 
 Skills in the library afterwards:
 
 - `hide {0}` (from "hide the remote", 5/5 worked): [{'do': 'put_in', 'obj': '{0}', 'into': 'basket'}]
 - `put {0} away` (from "put the toy away", 3/3 worked): [{'do': 'put_in', 'obj': '{0}', 'into': 'basket'}]
-- `set table in living room` (from "set the table in the living room", 2/2 worked): [{'do': 'put_on', 'obj': 'cup', 'room': 'living room'}, {'do': 'put_on', 'obj': 'plate', 'room': 'living room'}]
-- `clear living room table` (from "clear the living room table", 2/2 worked): [{'do': 'put_in', 'obj': 'ball', 'into': 'basket'}, {'do': 'put_on', 'obj': 'book', 'room': 'kitchen'}, {'do': 'put_on', 'obj': 'remote', 'room': 'kitchen'}, {'do': 'put_on', 'obj': 'soda can', 'room': 'kitchen'}]
-- `empty laundry counter onto living room table` (from "empty the laundry counter onto the living room table", 2/2 worked): [{'do': 'put_on', 'obj': 'red shirt', 'room': 'living room'}, {'do': 'put_on', 'obj': 'white shirt', 'room': 'living room'}, {'do': 'put_on', 'obj': 'towel', 'room': 'living room'}]
+- `set counter in {r0}` (from "set the table in the living room", 2/2 worked): [{'do': 'put_on', 'obj': 'cup', 'room': '{r0}'}, {'do': 'put_on', 'obj': 'plate', 'room': '{r0}'}]
+- `clear living room counter` (from "clear the living room table", 2/2 worked): [{'do': 'put_in', 'obj': 'ball', 'into': 'basket'}, {'do': 'put_on', 'obj': 'book', 'room': 'kitchen'}, {'do': 'put_on', 'obj': 'remote', 'room': 'kitchen'}, {'do': 'put_on', 'obj': 'soda can', 'room': 'kitchen'}]
+- `empty laundry counter onto {r1} counter` (from "empty the laundry counter onto the living room table", 2/2 worked): [{'do': 'put_on', 'obj': 'red shirt', 'room': '{r1}'}, {'do': 'put_on', 'obj': 'white shirt', 'room': '{r1}'}, {'do': 'put_on', 'obj': 'towel', 'room': '{r1}'}]
 - `put laundry away` (from "put the laundry away", 2/2 worked): [{'do': 'put_in', 'obj': 'towel', 'into': 'basket'}]
 - `clear kitchen counter` (from "clear the kitchen counter", 2/2 worked): [{'do': 'put_in', 'obj': 'cup', 'into': 'rack'}, {'do': 'put_in', 'obj': 'plate', 'into': 'rack'}, {'do': 'put_on', 'obj': 'apple', 'room': 'living room'}]
+- `set counter in kitchen` (from "set the table in the kitchen", 1/1 worked): [{'do': 'put_on', 'obj': 'cup', 'room': '{r0}'}, {'do': 'put_on', 'obj': 'plate', 'room': '{r0}'}]

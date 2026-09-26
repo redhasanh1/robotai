@@ -100,7 +100,8 @@ Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
 3. **Its own skills** (`hand/skills.py`): when the AI works out a task the built-in skills don't cover, the program is
    saved as a new named skill with the objects as slots ("hide the remote" -> "hide {0}"). Next time, or with another
    object, the robot does it with no model call, after checking it on the body. One failure and it asks the AI again.
-   `tools/skill_growth.py`: 7 new tasks, then again (0 model calls), then 6 new wordings (4 free). `results/skill_growth.md`.
+   Rooms are slots too, except when the room is why those objects were picked ("clear the living room table").
+   `tools/skill_growth.py`: 7 new tasks, then again (0 model calls), then 6 new wordings (5 free). `results/skill_growth.md`.
 4. **Recording**: every real attempt is saved (`logs/episodes`) and converts to a LeRobot dataset
    (`tools/export_lerobot.py`), ready for GR00T / SmolVLA post-training on a rented GPU once the arm exists.
 
