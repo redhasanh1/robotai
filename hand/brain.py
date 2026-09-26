@@ -54,6 +54,8 @@ def _lenient(kind, text, n=0):
         return {"family": fam, "why": text.strip()[:120]}, False
     if kind == "plan":
         return {"steps": [], "say": text.strip()[:160]}, False
+    if kind == "program":
+        return {"program": [], "say": text.strip()[:160]}, False
     if kind == "rank":
         order = []
         for x in re.findall(r"\d+", text):
@@ -113,6 +115,19 @@ class OpenAIBrain:
         reply, ok = _lenient(kind, out["choices"][0]["message"]["content"], n)
         self.json_ok.append(ok)
         return reply
+
+    def program(self, command, world, actions_doc, problems=None, previous=None):
+        """Write (or repair) a motor program for the full robot: -> {"program": [...], "say": "..."}."""
+        fix = ""
+        if problems:
+            fix = ("\nYour previous program was:\n" + json.dumps(previous) + "\nThe body simulator reported:\n- " +
+                   "\n- ".join(problems) + "\nWrite a corrected program that avoids these problems.")
+        return self._ask(
+            "You control a humanoid robot's two arms in a simulator. Write a program for this request, thinking about "
+            "how a person would do it with two hands and the objects on the table.\n"
+            f'Request: "{command}"\n\n{world}\n\nAvailable actions (JSON):\n{actions_doc}\n{fix}\n'
+            'Reply with ONE JSON object: {"program": [ ...actions... ], "say": "<one short sentence to the person>"}',
+            None, 700, "program")
 
     def plan(self, command, image=None):
         """Break a spoken command into skill steps. Honest about skills the robot doesn't have yet."""
@@ -184,6 +199,25 @@ class StubBrain:
     def _cost(self, out_tokens):
         self.last_latency = self.ttft + out_tokens / self.tps
         self.calls.append(self.last_latency)
+
+    def program(self, command, world, actions_doc, problems=None, previous=None):
+        """No model: translate what the keyword planner understands, plus a few built-in routines."""
+        self._cost(120)
+        low = command.lower()
+        objs = [o for o in ("ball", "can", "block", "bar") if o in low] or \
+               [find_object(command)] if find_object(command) else []
+        o = objs[0] if objs else "ball"
+        if re.search(r"\bjuggl", low):
+            prog = [{"do": "pick", "obj": o}] + [{"do": "toss", "obj": o, "to": s, "height": 0.3}
+                                                  for s in ("left", "right", "left", "right")]
+            return {"program": prog, "say": f"juggling the {o} between my hands"}
+        if re.search(r"\b(swap|switch) hands|other hand|pass\b", low):
+            return {"program": [{"do": "pick", "obj": o}, {"do": "pass", "obj": o, "to": "left"},
+                                {"do": "pass", "obj": o, "to": "right"}], "say": "passing it across"}
+        if re.search(r"\b(throw|toss)\b", low):
+            return {"program": [{"do": "pick", "obj": o}, {"do": "toss", "obj": o, "to": "right", "height": 0.3}],
+                    "say": "up it goes"}
+        return {"program": [], "say": ""}
 
     def plan(self, command, image=None):
         """Keyword planner: grasp known objects; name the missing skills for everything else."""

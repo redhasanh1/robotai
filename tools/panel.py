@@ -59,7 +59,9 @@ class Panel:
         tk.Button(row, text="Do it", command=self.say).pack(side="left", padx=(6, 0))
         tk.Button(self.w, text="🎲  Random task", font=("Segoe UI", 11),
                   command=lambda: self._run(["robot_do.py", "--random"], "picking a task...\n")).pack(
-            fill="x", padx=16, pady=(0, 6))
+            fill="x", padx=16, pady=(0, 3))
+        tk.Button(self.w, text="🧠  Start AI brain (local model, ~1 min to load; then it thinks up new tasks)",
+                  font=("Segoe UI", 10), command=self.start_brain).pack(fill="x", padx=16, pady=(0, 6))
         self.out = tk.Text(self.w, height=8, font=("Consolas", 9), wrap="word")
         self.out.pack(fill="x", padx=16)
         tk.Button(self.w, text="▶  Sim hand: grab 4 objects (plays once)", font=("Segoe UI", 11),
@@ -92,6 +94,17 @@ class Panel:
     def launch(self, tool, *args):
         subprocess.Popen([PY, os.path.join(ROOT, "tools", tool), *args], cwd=ROOT,
                          creationflags=subprocess.CREATE_NO_WINDOW)
+        self.w.after(1500, self.refresh)
+
+    def start_brain(self):
+        """Qwen2.5-VL-3B in 4-bit on the laptop GPU at :8766 - robot_do uses it automatically when it's up.
+        STOP ALL stops it (it's local_vlm_server.py)."""
+        env = dict(os.environ, LOCAL_VLM="Qwen/Qwen2.5-VL-3B-Instruct", LOCAL_4BIT="1")
+        subprocess.Popen([PY, os.path.join(ROOT, "tools", "local_vlm_server.py"), "8766"], cwd=ROOT, env=env,
+                         creationflags=subprocess.CREATE_NO_WINDOW)
+        self.out.delete("1.0", "end")
+        self.out.insert("end", "AI brain loading on the GPU (about a minute). After that, anything the robot doesn't\n"
+                               "already know how to do is thought through by the AI (~30 s per thought).\n")
         self.w.after(1500, self.refresh)
 
     def say(self):
