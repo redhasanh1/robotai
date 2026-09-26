@@ -229,15 +229,20 @@ def actions_doc(high_level=True):
     """The action list the AI plans with. high_level (default): skills only - a small model given raw move_hand
     coordinates invented targets 1-2 m away that it could not repair (house test, round 8)."""
     if high_level:
-        return """Actions (JSON), one object per step:
-  {"do": "go", "to": "kitchen|laundry|living room|you"}
-  {"do": "pick", "obj": "<object>"}                         drives there first if needed
+        # each skill with its PURPOSE / EFFECT (Kimi round 8: give the planner an action-effect model, not
+        # task-specific rules - "wipe removes spills" is what wipe does, not the answer to one test prompt)
+        return """Actions (JSON), one object per step - with what each one is for:
+  {"do": "go", "to": "kitchen|laundry|living room|you"}      move the robot; others drive there by themselves
+  {"do": "pick", "obj": "<object>"}                          hold an object (drives to it first)
   {"do": "put_in", "obj": "<object>", "into": "sink|rack|washer|basket"}
-  {"do": "put_on", "obj": "<object>", "room": "kitchen|laundry|living room"}
-  {"do": "give", "obj": "<object>"}                         bring it to the person
-  {"do": "wipe", "room": "kitchen|laundry|living room"}    cleans that counter/table with the sponge
-  {"do": "toss", "obj": "<object>", "to": "left|right", "height": 0.3}
-  {"do": "point", "obj": "<object>"}  {"do": "look", "obj": "<object>"}  {"do": "wave"}  {"do": "say", "text": "..."}
+        sink: dirty dishes wait here to be washed    rack: clean dishes dry and are stored here
+        washer: dirty clothes get washed here        basket: clean or folded laundry is kept here
+  {"do": "put_on", "obj": "<object>", "room": "kitchen|laundry|living room"}   leave it on that room's counter/table
+  {"do": "give", "obj": "<object>"}                          hand it to the person (for things they need or ask for)
+  {"do": "wipe", "room": "kitchen|laundry|living room"}      clean that room's surface: removes spills, crumbs, mess
+  {"do": "toss", "obj": "<object>", "to": "left|right", "height": 0.3}        throw between hands (play, juggling)
+  {"do": "point", "obj": "<object>"}  {"do": "look", "obj": "<object>"}  show or attend to something
+  {"do": "wave"}  {"do": "say", "text": "..."}               greet / talk to the person
 Use only these actions and only the objects, containers and rooms listed. Think about the GOAL first (where should
 each object end up?) and then write the fewest steps that get there."""
     from . import motor
