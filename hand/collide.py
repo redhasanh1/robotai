@@ -134,6 +134,24 @@ def _replay(m, body, robot, stride, tol):
             held.add("obj_" + str(ev[2]))
         elif ev and ev[0] in ("detach", "give", "fly"):
             held.discard("obj_" + str(ev[1]).replace(" ", "_"))
+    # the thing the hand is about to close on (or slide) is not an obstacle on the way to it - e.g. the apple being
+    # moved out of the way inside the sponge's step; and the thing just let go is not one on the way out
+    about = [None] * len(body.frames)
+    nxt, at = None, 0
+    for i in range(len(body.frames) - 1, -1, -1):
+        ev = body.frames[i][2]
+        if ev and ev[0] == "attach" and len(ev) > 2 and ev[2]:
+            nxt, at = "obj_" + str(ev[2]), i
+        elif ev and ev[0] == "slide":
+            nxt, at = "obj_" + str(ev[1]), i
+        about[i] = nxt if nxt and at - i <= 3 else None     # only the approach itself (last 3 frames before)
+    last = None
+    for i, (_, _, ev) in enumerate(body.frames):
+        if ev and ev[0] == "detach":
+            last = "obj_" + str(ev[1]).replace(" ", "_")
+        elif ev and ev[0] in ("attach", "slide"):
+            last = None
+        held_at[i] |= {x for x in (about[i], last) if x}
 
     def step_for(frame):
         cur = None
