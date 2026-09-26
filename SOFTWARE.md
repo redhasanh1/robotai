@@ -58,6 +58,16 @@ Brain speed per decision:
 
 Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
 
+## The simulated house
+
+The InMoov on its wheeled base drives between a kitchen (sink, dish rack), a laundry (washer, basket), a living room
+and you. It does the dishes, the laundry, fetches things, wipes counters, puts things away, juggles, and understands
+wishes ("I'm hungry" → brings the apple). Every plan is checked on the body first (reach, joints, grip, catches).
+
+**50-command test** (`results/house.md`): built-in rules pass **47/50**. With the small AI model on the laptop GPU
+thinking up the rest, restricted to the robot's own skills and using its past tasks as examples, it's **49/50**.
+The one left, "I spilled something in the living room", needs common sense the laptop model doesn't have.
+
 ## See it and use it
 
 Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
