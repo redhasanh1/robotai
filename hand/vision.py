@@ -129,3 +129,15 @@ def open_camera(index=0, exposure=-6):
     cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
     cap.set(cv2.CAP_PROP_FPS, 30)
     return cap
+
+
+def read_stamped(cap):
+    """(image, t_read, t_driver) - t_read = time.monotonic() right after the frame arrived; t_driver = the camera
+    driver's own timestamp (ms) when it provides one, else NaN. Logged from day 1 so webcam latency and dropped
+    frames show up in the data instead of as mystery estimator error (Kimi round 7)."""
+    import time
+    import cv2
+    ok, img = cap.read()
+    t_read = time.monotonic()
+    t_drv = cap.get(cv2.CAP_PROP_POS_MSEC) if ok else float("nan")
+    return (img if ok else None), t_read, (t_drv if t_drv and t_drv > 0 else float("nan"))

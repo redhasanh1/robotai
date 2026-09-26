@@ -70,6 +70,18 @@ Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
   wrist turns and the hand closes, or open it with sliders and move every joint yourself.
 - **STOP ALL**: kills every robot program that's running. To interrupt Claude, press Esc in the terminal.
 
+## What the simulations say about the real hand (read before Monday)
+
+- **Power** (`results/power.md`): moving fingers is cheap (under 2 A per hand). Squeezing an object is not. All
+  five servos push at close to stall, about 12.5 A on a 12 A supply, and they heat up. The **squeeze guard**
+  (`hand/guard.py`) backs each finger off to just past contact and halves the current. It needs the fingertip
+  camera to see contact, so keep real grasps short until that works.
+- **Tendons** (`results/tendon.md`): a finger reaches 90% closed at about 2.3 rad (132°) of servo horn, already
+  using 73% of the servo's strength. At 2.5 rad the line fights the finger's end stops and the servo stalls.
+  **Calibrate each finger's closed position a little short of fully closed.** A few mm of slack is a safety margin.
+  The fingertip curls before the base joint.
+- **Camera**: the laptop webcam measured 16 fps with exposure locked, not 30. Every frame is timestamped.
+
 ## Learning without big training
 
 1. **Memory**: every attempt, and why it failed, goes into the AI's prompt next time.

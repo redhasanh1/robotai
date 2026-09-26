@@ -47,8 +47,8 @@ class RealCam:
         self.cap.set(cv2.CAP_PROP_FPS, 30)
 
     def angle(self):
-        ok, img = self.cap.read()
-        return vision.marker_angle(img, HORN_ID) if ok else None
+        img, self.t_frame, _ = vision.read_stamped(self.cap)     # frame time, not loop time
+        return vision.marker_angle(img, HORN_ID) if img is not None else None
 
 
 def run(port, ch, cam_index, seconds=20.0, dt=0.03, side="right"):
@@ -62,6 +62,7 @@ def run(port, ch, cam_index, seconds=20.0, dt=0.03, side="right"):
     q = [0.0] * config.N
     link._send(protocol.slew(20000))        # lift the firmware slew limit: measure the SERVO, not our own limiter
     t0 = time.time()
+    t0_mono = time.monotonic()
     try:
         for k in range(n):
             q[ch] = float(cmd[k])
@@ -76,7 +77,7 @@ def run(port, ch, cam_index, seconds=20.0, dt=0.03, side="right"):
                 t = time.time() - t0
             a = cam.angle()
             if a is not None:
-                ts.append(t)
+                ts.append(t if fake else cam.t_frame - t0_mono)
                 cs.append(cmd[k])
                 angs.append(a)
             if k % 100 == 0:

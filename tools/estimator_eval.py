@@ -79,7 +79,7 @@ def rmse(a, b):
     return float(np.sqrt(np.mean((a[:, :5] - b[:, :5]) ** 2)))
 
 
-def main(seed=3, kind="bend", quiet=False):
+def main(seed=3, kind="bend", quiet=False, fps_every=3):
     rng = np.random.default_rng(seed)
     truth_servos = real_servos(seed)
 
@@ -105,7 +105,7 @@ def main(seed=3, kind="bend", quiet=False):
     _, cmd = sysid.excite(3000, DT, seed=seed + 2)
     real = RealHand(truth_servos, kind)
     qt = np.array([real.step(c, DT) for c in cmd])
-    z = vision_stream(qt, rng)
+    z = vision_stream(qt, rng, fps_every=fps_every)   # control runs at 100 Hz: every 3 = 33 fps, every 6 = 16 fps
     held = z.copy()
     for k in range(1, len(held)):
         held[k] = np.where(np.isnan(held[k]), held[k - 1], held[k])

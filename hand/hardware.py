@@ -31,8 +31,9 @@ class HardwareWorld:
     def render(self, *_a, **_k):
         if self.cap is None:
             return None
-        ok, img = self.cap.read()
-        return img[:, :, ::-1] if ok else None          # BGR -> RGB like the sim renderer
+        from .vision import read_stamped
+        img, self.t_frame, _ = read_stamped(self.cap)
+        return img[:, :, ::-1] if img is not None else None          # BGR -> RGB like the sim renderer
 
     def _go(self, q, seconds):
         start = np.array(self.link.q_cmd, float)
