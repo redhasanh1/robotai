@@ -99,7 +99,8 @@ class Panel:
     def start_brain(self):
         """Qwen2.5-VL-3B in 4-bit on the laptop GPU at :8766 - robot_do uses it automatically when it's up.
         STOP ALL stops it (it's local_vlm_server.py)."""
-        env = dict(os.environ, LOCAL_VLM="Qwen/Qwen2.5-VL-3B-Instruct", LOCAL_4BIT="1")
+        env = dict(os.environ, LOCAL_VLM="Qwen/Qwen2.5-VL-3B-Instruct", LOCAL_4BIT="1",
+                   HF_HUB_OFFLINE="1")                  # use the cached weights; online it can hang on the hub
         subprocess.Popen([PY, os.path.join(ROOT, "tools", "local_vlm_server.py"), "8766"], cwd=ROOT, env=env,
                          creationflags=subprocess.CREATE_NO_WINDOW)
         self.out.delete("1.0", "end")
