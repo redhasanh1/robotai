@@ -1,0 +1,21 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    { "label": "Setup: install everything", "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File setup/install.ps1" },
+    { "label": "Firmware: compile", "type": "shell",
+      "command": "& \"$HOME/Tools/arduino-cli/arduino-cli.exe\" compile --fqbn esp32:esp32:esp32 firmware/hand_esp32",
+      "group": "build" },
+    { "label": "Firmware: flash to ESP32", "type": "shell",
+      "command": "powershell -ExecutionPolicy Bypass -File setup/flash.ps1" },
+    { "label": "Hand: console (fake ESP32)", "type": "shell",
+      "command": ".venv/Scripts/python.exe tools/console.py" },
+    { "label": "Hand: servo DOA test", "type": "shell",
+      "command": ".venv/Scripts/python.exe tools/servo_bench.py doa ${input:port}" },
+    { "label": "Sim: watch the hand", "type": "shell",
+      "command": ".venv/Scripts/python.exe tools/demo.py" },
+    { "label": "Tests", "type": "shell", "command": ".venv/Scripts/python.exe -m pytest -q", "group": "test" },
+    { "label": "Benchmark (quick)", "type": "shell", "command": ".venv/Scripts/python.exe tools/bench.py --quick" }
+  ],
+  "inputs": [ { "id": "port", "type": "promptString", "description": "ESP32 COM port", "default": "COM5" } ]
+}
