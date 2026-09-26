@@ -48,14 +48,17 @@ class Panel:
         self.w.geometry("440x640+40+40")
         self.w.attributes("-topmost", True)
         tk.Label(self.w, text="PINN Humanoid", font=("Segoe UI", 14, "bold")).pack(pady=(10, 4))
-        tk.Label(self.w, text="Tell the robot (pick up the ball, wave, box, clean the dishes...):", anchor="w").pack(fill="x", padx=16)
+        tk.Label(self.w, text="Tell the robot (put the ball on the left, stack the block on the can,\n"
+                              "give me the bar, tidy the table, point at the can, wave, box, clap...):",
+                 anchor="w", justify="left").pack(fill="x", padx=16)
         row = tk.Frame(self.w)
         row.pack(fill="x", padx=16, pady=(0, 6))
         self.cmd = tk.Entry(row, font=("Segoe UI", 11))
         self.cmd.pack(side="left", fill="x", expand=True)
         self.cmd.bind("<Return>", lambda _e: self.say())
         tk.Button(row, text="Do it", command=self.say).pack(side="left", padx=(6, 0))
-        tk.Button(self.w, text="🎤  Speak (4 seconds)", font=("Segoe UI", 11), command=self.speak).pack(
+        tk.Button(self.w, text="🎲  Random task", font=("Segoe UI", 11),
+                  command=lambda: self._run(["robot_do.py", "--random"], "picking a task...\n")).pack(
             fill="x", padx=16, pady=(0, 6))
         self.out = tk.Text(self.w, height=8, font=("Consolas", 9), wrap="word")
         self.out.pack(fill="x", padx=16)
@@ -90,9 +93,6 @@ class Panel:
         subprocess.Popen([PY, os.path.join(ROOT, "tools", tool), *args], cwd=ROOT,
                          creationflags=subprocess.CREATE_NO_WINDOW)
         self.w.after(1500, self.refresh)
-
-    def speak(self):
-        self._run(["listen.py"], "starting the microphone...\n")
 
     def say(self):
         text = self.cmd.get().strip()

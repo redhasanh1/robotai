@@ -62,9 +62,9 @@ Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
 
 Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
 
-- **Speak or type**: "pick up the ball", "wave", "box" → the full InMoov does it on screen. "walk the dog" →
-  it tells you which skill is missing (navigate). Speech-to-text is Whisper, on the laptop.
-  "clean the dishes" → it plans the steps and tells you which skills still have to be built.
+- **Type a task** or press **🎲 Random task**: the full InMoov plans it from its skills and does it: pick up,
+  put on the left/middle/right, stack one thing on another, hand it to you, point at, push, look at, wave, box,
+  clap, nod, shake its head, tidy the table. Chain them: "grab the orange and put it on the right, then wave".
 - **Sim hand**: grabs the ball, can, block and bar once each, in slow motion.
 - **Full robot**: the whole InMoov upper body (57 joints, from the same model as the website). The arm reaches, the
   wrist turns and the hand closes, or open it with sliders and move every joint yourself.
