@@ -224,7 +224,7 @@ class HomeBody(motor.Body):
                 return hits
         return []
 
-    def _detour(self, side, q, grasp=None, xyz=None):
+    def _detour(self, side, q, grasp=None, xyz=None, extra=()):
         """If going straight to q would sweep the arm through something, go by one or two waypoints instead: lift
         straight up from where the hand is, straight above the target (then come down onto it), or the READY pose
         (hand pulled in above the counter's front edge). The first route whose every leg is clear wins."""
@@ -236,7 +236,7 @@ class HomeBody(motor.Body):
         here = self._hand_xyz(side)
         points += [here + (0, 0, h) for h in (0.12, 0.22)]
         points += [self._local_xyz((0.18 if side == "left" else -0.18, -0.12), TABLE_Z + z) for z in (0.22, 0.32)]
-        vias = []
+        vias = [self._full(side, v) for v in extra if v is not None and not self._hits(side, self._full(side, v), grasp)]
         for p in points:
             v, _ = reach.solve(self.m, p, side=side, base=self.base)
             v = self._full(side, v) if v is not None else None
@@ -380,14 +380,26 @@ class HomeBody(motor.Body):
             if g is None and self._flat(o) and self.where[o][0] == "on":
                 # this hand can't pinch (thumb and index stay 4 cm apart), so a flat thing is slid to the counter's
                 # edge and taken by the half that sticks out - how people pick up a card or a coin
-                if self._slide_to_edge(o, side):
+                blockers = []
+                slid = self._slide_to_edge(o, side, blockers)
+                if not slid and blockers and AUTO_CLEAR and not getattr(self, "_clearing", False):
+                    for b in blockers:                         # neighbours in the way of the slide: move them first
+                        self.said.append(f"moving the {b} out of the way")
+                        self._clearing = True
+                        try:
+                            self.put_on(b, room, away_from=p)
+                        finally:
+                            self._clearing = False
+                    slid = self._slide_to_edge(o, side)
+                if slid:
                     g = self._plan_grasp(o, side)
         if g is None:
             return self.problems.append(f"pick {o}: no clean way to get a hand round it")
         pre, q, an, dz = g
         p = self.grip_at.get(o, p)
         self.set_grip(side, PRESHAPE, None, 0.3)               # pre-shape: straight open fingers hit the counter
-        self._go_q(side, pre, why=f"pick {o}", grasp=o)
+        high = [self._gsolve(side, p + (0, 0, dz + 0.03 + up) - an * 0.08, an, loose=True) for up in (0.12, 0.22)]
+        self._go_q(side, pre, why=f"pick {o}", grasp=o, vias=high)   # in from above at the grasp angle
         self._go_q(side, q, 0.6, grasp=o)
         if self.where[o][0] == "in":
             self.filled[self.where[o][1]] -= 1
@@ -448,7 +460,7 @@ class HomeBody(motor.Body):
         dy = np.array([-np.sin(yaw), np.cos(yaw)])          # the room's local y (towards the robot) in world
         return abs(dy[0]) * size[0] + abs(dy[1]) * size[1]
 
-    def _slide_to_edge(self, o, side):
+    def _slide_to_edge(self, o, side, blockers=None):
         """Knuckles on top of o, slide it towards the robot until half of it sticks out over the counter's front
         edge; afterwards pick() takes it by that half, where there is air underneath. Checked like every move."""
         room = self._room_of(o)
@@ -480,10 +492,15 @@ class HomeBody(motor.Body):
                     above = solve(p + (0, 0, top + 0.08), down, True) if drag is not None else None
                     if above is None:
                         continue
-                    if not (self._hits(side, on, o, surf) or self._hits(side, drag, o, surf) or
-                            self._path_hits(side, above, on, o, surf) or self._path_hits(side, on, drag, o, surf)):
+                    hits = (self._hits(side, on, o, surf) + self._hits(side, drag, o, surf) +
+                            self._path_hits(side, above, on, o, surf) + self._path_hits(side, on, drag, o, surf))
+                    if not hits:
                         plan = (on, drag, above, top, down)
                         break
+                    if blockers is not None and not blockers:     # what is in the way of the most natural slide
+                        blockers += list(dict.fromkeys(h[1][4:].replace("_", " ") for h in hits
+                                                       if h[1].startswith("obj_") and
+                                                       h[1][4:].replace("_", " ") in OBJECTS))
                 if plan:
                     break
         finally:
@@ -553,9 +570,9 @@ class HomeBody(motor.Body):
         """Every arm pose names the wrist bend too (palm-only solves leave it straight)."""
         return {reach.wrist_flex(side): 0.0, **q}
 
-    def _go_q(self, side, q, seconds=None, event=None, grasp=None, why=""):
+    def _go_q(self, side, q, seconds=None, event=None, grasp=None, why="", vias=()):
         q = self._full(side, q)
-        self._detour(side, q, grasp)
+        self._detour(side, q, grasp, extra=vias)
         need = max(abs(q[n] - self.arm_q[side].get(n, 0.0)) for n in q) / motor.ARM_SPEED
         self.arm_q[side] = q
         self.frames.append((max(seconds or 0.0, need, 0.3), self._pose(), event))
@@ -611,14 +628,17 @@ class HomeBody(motor.Body):
             self.problems.append(f"put {o}: the {side} hand can't set it down there")
             return False
         above, q, an, dz = plan
-        self._go_q(side, above, why=f"put {o}")
+        high = [self._gsolve(side, np.array([x, y, z + h + dz + up]), an, loose=True) for up in (0.2, 0.3)]
+        self._go_q(side, above, why=f"put {o}", vias=high)       # come down onto the spot at the grasp angle
         self._go_q(side, q, 0.6)
         self.pos[o] = np.array([x, y, z + h])
         self.held[side], self.where[o] = None, where
         self.grasp_dir.pop(o, None)
-        self.set_grip(side, 0.0, ("detach", mocap_name(o)[4:], (x, y, z + h)))
-        back = self._gsolve(side, np.array([x, y, z + h + dz + 0.05]) - an * 0.08, an, loose=True)
-        self._go_q(side, back if back is not None else above, 0.5)
+        # let go by opening only to the half-curled pre-shape (flat open fingers poked 3-5 mm into the basket), lift
+        # straight up at the same angle, and relax the hand later, away from everything
+        self.set_grip(side, PRESHAPE, ("detach", mocap_name(o)[4:], (x, y, z + h)))
+        up = self._gsolve(side, np.array([x, y, z + h + dz + 0.12]), an, loose=True)
+        self._go_q(side, up if up is not None else above, 0.5)
         return True
 
     def set_grip(self, side, amount, event=None, seconds=0.5):
@@ -887,6 +907,7 @@ class HomeBody(motor.Body):
                 if self.held[s]:
                     self.put_on(self.held[s], self.room if self.room in ("kitchen", "laundry", "living room")
                                 else "living room")
-            self.grip = {"right": 0.0, "left": 0.0}
             self._to_rest(1.0)
+            self.grip = {"right": 0.0, "left": 0.0}          # relax the hands only once they are tucked in
+            self.frames.append((0.4, self._pose(), None))
         return self

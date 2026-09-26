@@ -1,3 +1,5 @@
+> **INVALID RUN - do not use these numbers.** It ran while the grasping was being rewritten (branch real-grasps): every task with a flat object (remote, book, shirts, plate) failed on 'no clean way to get a hand round it', not on the model. What it does show: 'clear the kitchen counter' and 'hide the apple' reused with 0 model calls. Rerun when the grasp rework is merged.
+
 # Skills the robot writes for itself (tools/skill_growth.py --ai)
 
 Pass 1 programs come from the local model (Qwen2.5-3B 4-bit, :8766). Every task starts from the same clean house.
