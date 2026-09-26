@@ -38,6 +38,7 @@ DISHES, DIRTY = ["cup", "plate"], ["red shirt", "white shirt"]
 
 def _objs(c):
     out = []
+    c = re.sub(r"\blaundry (room|area)\b", " ", c)                       # a place, not the clothes
     for w in sorted(OBJ_WORDS, key=len, reverse=True):                   # longest first: "red shirt" before "shirt"
         if re.search(rf"\b{w}\b", c):
             for o in OBJ_WORDS[w]:
@@ -70,6 +71,13 @@ def plan(command):
         last_verb = (c[:c.index(" me ") + 3] if re.search(r"\b(give|bring|hand|fetch|get) me\b", c)
                      else v.group(1)) if v else last_verb
         cont, room = _first(c, CONT_WORDS), _first(c, ROOM_WORDS)
+        src = re.search(r"\b(everything|all (the )?(things|stuff))( that'?s)? (from|in|on|off) (the )?"
+                        r"(kitchen|laundry( room| area)?|living room)", c)
+        if src:          # "everything from the laundry" = what is in that room, not "laundry" = the dirty clothes
+            place = {"laundry room": "laundry", "laundry area": "laundry"}.get(src.group(7), src.group(7))
+            os_ = [o for o, v in home.OBJECTS.items() if v[0] == place]
+            dest = re.search(r"\b(to|into|onto) (the )?(kitchen|laundry|living room)", c[src.end():])
+            room = dest.group(3) if dest else None
         wish = next((p for pat, p in WISHES if re.search(pat, c)), None)
         if re.search(r"out of the way|belongs?|spill|mess|where it goes|put .* back\b", c):
             unknown.append(c)                          # judgement calls: leave to the AI rather than guess

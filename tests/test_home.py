@@ -61,3 +61,11 @@ def test_splice_repair_offers_only_steps_that_work():
     fixed, _ = H.think("I spilled something in the living room", M, Picker(), say=lambda s: None, messes=mess)
     body = home.HomeBody(M, mess).run(fixed)
     assert not body.problems and "living room" in body.wiped and not body.messes
+
+
+def test_everything_from_a_room_means_what_is_in_it():
+    prog, unknown = H.plan("move everything from the laundry to the living room")
+    assert not unknown and {a["obj"] for a in prog} == {"red shirt", "white shirt", "towel"}
+    assert all(a["room"] == "living room" for a in prog)
+    prog, _ = H.plan("take all the stuff from the kitchen to the laundry room")
+    assert {a["obj"] for a in prog} == {"cup", "plate", "apple", "sponge"} and prog[0]["room"] == "laundry"
