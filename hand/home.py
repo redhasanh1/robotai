@@ -60,6 +60,7 @@ RAISES = (0.0, 0.01, 0.02, 0.03, 0.04, 0.06, 0.08, 0.10)    # m: how far a hand 
 PATH_SAMPLES = (0.12, 0.25, 0.37, 0.5, 0.62, 0.75, 0.87)    # where along a move the path is checked
 CARRY_AT = {"right": (-0.16, -0.08, TABLE_Z + 0.12), "left": (0.16, -0.08, TABLE_Z + 0.12)}   # robot frame
 _CARRY = {}
+CLEARANCE = 0.005                              # m: the planner keeps the arm this far from things (the replay checks contact)
 AUTO_CLEAR = True                              # move a blocking object aside before a grasp (tools/clutter.py ablates it)
 LOOK_H = 0.7                                   # counter camera height above the counter top
 
@@ -265,7 +266,8 @@ class HomeBody(motor.Body):
             self.arm_q = saved
         objs = {o: None if self.where[o][0] in ("held", "given") else self.pos[o] for o in OBJECTS}
         ignore = {mocap_name(o) for o in ({grasp} | getattr(self, "handling", set())) if o in OBJECTS}
-        return [h for h in collide.pose_hits(self.m, pose, objs, ignore, tol=0.0) if h[0].lower().startswith(side)]
+        return [h for h in collide.pose_hits(self.m, pose, objs, ignore, tol=0.0, clearance=CLEARANCE)
+                if h[0].lower().startswith(side)]
 
     def _local_xyz(self, local, z):
         xy = to_world(self.base, local)
@@ -356,7 +358,15 @@ class HomeBody(motor.Body):
     def _blockers(self, o, side, xyz):
         """Other objects the hand would go through coming down onto o at xyz - above it, the way down, the grip
         (checked on the body, nothing moved)."""
-        q, _ = reach.solve(self.m, xyz, side=side, base=self.base)
+        q = None
+        for dz in RAISES:                      # the height move() will really use: lifted until the counter clears
+            q2, _ = reach.solve(self.m, np.asarray(xyz) + (0, 0, dz), side=side, base=self.base)
+            if q2 is None:
+                break
+            q = q2
+            if not [h for h in self._hits(side, q2, grasp=o) if not h[1].startswith("obj_")]:
+                xyz = np.asarray(xyz) + (0, 0, dz)
+                break
         above, _ = reach.solve(self.m, np.asarray(xyz) + (0, 0, 0.08), side=side, base=self.base)
         if q is None:
             return []

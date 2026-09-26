@@ -58,25 +58,31 @@ def _masks(m):
 class _Contacts:
     """with _Contacts(m): robot-vs-house contacts on; the model's own (all off) masks come back afterwards."""
 
-    def __init__(self, m):
-        self.m = m
+    def __init__(self, m, clearance=0.0):
+        self.m, self.clearance = m, clearance
 
     def __enter__(self):
         robot, masks, d = _masks(self.m)
-        self.saved = {f: getattr(self.m, f).copy() for f in _FIELDS}
+        self.saved = {f: getattr(self.m, f).copy() for f in _FIELDS + ("geom_margin",)}
         for f, v in masks.items():
             getattr(self.m, f)[:] = v
+        if self.clearance:                  # fixed house geoms report anything closer than this, not only overlaps
+            for g in np.nonzero(masks["geom_conaffinity"] > 0)[0]:
+                if not self.m.body(self.m.geom_bodyid[g]).name.startswith("obj_"):   # objects sit close on purpose
+                    self.m.geom_margin[g] = self.clearance
         return robot, d
 
     def __exit__(self, *exc):
-        for f in _FIELDS:
+        for f in _FIELDS + ("geom_margin",):
             getattr(self.m, f)[:] = self.saved[f]
 
 
-def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002):
+def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002, clearance=0.0):
     """One pose: {joint: value} + where the objects are ({name: xyz, or None if held/away}) ->
-    [(robot body, house body, depth m)] for everything the robot is inside by more than tol."""
-    with _Contacts(m) as (robot, d):
+    [(robot body, house body, depth m)] for everything the robot is inside by more than tol - or, with a clearance,
+    everything it comes closer to than that (planning with a safety margin: the house is treated as that much bigger,
+    so what happens between the checked points can't turn into contact)."""
+    with _Contacts(m, clearance) as (robot, d):
         for n, v in joints.items():
             j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)
             if j >= 0:
@@ -92,7 +98,8 @@ def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002):
             b1, b2 = m.geom_bodyid[c.geom1], m.geom_bodyid[c.geom2]
             rb, hb = (b1, b2) if b1 in robot else (b2, b1)
             name = m.body(hb).name or "wall"
-            if rb in robot and hb not in robot and -c.dist > tol and name not in ignore:
+            margin = clearance if not name.startswith("obj_") else 0.0
+            if rb in robot and hb not in robot and c.dist < margin - tol and name not in ignore:
                 out.append((m.body(rb).name, name, round(-c.dist, 3)))
         return out
 

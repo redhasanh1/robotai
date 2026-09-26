@@ -35,7 +35,12 @@ What was wrong and what fixed it, in the order found:
    sweep sideways).
 8. **Juggling at chest height** (25 cm over the counter, near the body) instead of 7 cm over the things on it.
 
-After all of it, default layout: planner problems 0/47, replay contact > 5 mm in 2/47.
+9. **A 5 mm safety margin.** The planner treats the counters, containers, wall and person as 5 mm bigger than they
+   are (MuJoCo geom margin, only during its checks), so what happens between its checked points can't turn into
+   contact. Objects stay exact - they sit close together on purpose (8 mm on everything made the apple "in the way" of
+   the sponge). 8 mm on fixed things only, 5 mm and 3 mm all gave zero contacts on the default layout; 5 mm kept.
+
+After all of it, default layout: planner problems 0/47, replay contact > 2 mm: 0/47.
 
 ## Random clutter (tools/clutter.py, results/clutter.md)
 
@@ -44,12 +49,14 @@ After all of it, default layout: planner problems 0/47, replay contact > 5 mm in
 | robot moves obstacles aside | done cleanly | stopped by the body check | replay: arm > 5 mm into something |
 |---|---|---|---|
 | no | 390 (83%) | 80 | 108 |
-| yes | **453 (96%)** | 17 | 108 |
+| yes | 453 (96%) | 17 | 108 |
+| yes, + grip checked at the height it really closes | 445 (95%) | 25 | 106 |
+| yes, + 5 mm margin on fixed things | 439 (93%) | 31 | **57** |
 
-Moving obstacles aside turns 63 blocked tasks into done ones. The last column is the honest gap: in 23% of cluttered
-runs the dense replay still finds a hand brushing something by more than 5 mm that the planner's checks (endpoints, 7
-points per path, open/closed hand at the grip) did not see - e.g. closing on the ball after being lifted off the
-counter brushes a soda can beside it by 8 mm. Next: check every emitted frame the way the replay does.
+Moving obstacles aside turns 63 blocked tasks into done ones. The margin halves the brushes (108 -> 57) at the cost
+of 14 more tasks the robot refuses rather than bumping something - the right way round for a real robot. The honest
+gap: 12% of cluttered runs still brush something by more than 5 mm in the dense replay, almost all of it hands near
+OBJECTS (which get no margin) - e.g. closing on the ball brushes a soda can beside it.
 
 Every one of these is geometry, not learning: exact, needs no data, and works in a room it has never seen.
 
