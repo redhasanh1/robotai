@@ -30,7 +30,28 @@ What was wrong and what fixed it, in the order found:
 6. **Letting go.** Open fingers are longer than curled ones: releasing right above the washer put them 3.5 cm into
    it. Before opening, the open hand is checked; if it would hit, the hand lifts until it clears, then lets go.
 
+7. **Something in the way of a grasp is moved aside**, then the robot takes what it came for ("moving the cup out
+   of the way"). The check covers the whole approach - above, the way down, and the hand closing (curling fingers
+   sweep sideways).
+8. **Juggling at chest height** (25 cm over the counter, near the body) instead of 7 cm over the things on it.
+
+After all of it, default layout: planner problems 0/47, replay contact > 5 mm in 2/47.
+
+## Random clutter (tools/clutter.py, results/clutter.md)
+
+10 random layouts - every object at a random spot on its own counter - times the 47 tasks = 470 runs:
+
+| robot moves obstacles aside | done cleanly | stopped by the body check | replay: arm > 5 mm into something |
+|---|---|---|---|
+| no | 390 (83%) | 80 | 108 |
+| yes | **453 (96%)** | 17 | 108 |
+
+Moving obstacles aside turns 63 blocked tasks into done ones. The last column is the honest gap: in 23% of cluttered
+runs the dense replay still finds a hand brushing something by more than 5 mm that the planner's checks (endpoints, 7
+points per path, open/closed hand at the grip) did not see - e.g. closing on the ball after being lifted off the
+counter brushes a soda can beside it by 8 mm. Next: check every emitted frame the way the replay does.
+
 Every one of these is geometry, not learning: exact, needs no data, and works in a room it has never seen.
 
-Still open: juggling throws use their own motion code and are not checked yet; the object in the hand is not checked
-against the house (only the arm is); moving an obstacle out of the way is reported, not yet done automatically.
+Still open: the object in the hand is not checked
+against the house (only the arm is).

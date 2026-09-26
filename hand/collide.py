@@ -104,6 +104,10 @@ def sweep(m, body, stride=2, tol=0.002):
 
 def _replay(m, body, robot, stride, tol):
     d = mujoco.MjData(m)
+    for o, p in getattr(body, "pos0", {}).items():             # start from where the objects really were
+        bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "obj_" + o.replace(" ", "_"))
+        if bid >= 0:
+            d.mocap_pos[m.body_mocapid[bid]] = p
     starts = getattr(body, "step_at", [])
     # which frame is playing on each on_frame call (motor.play: steps per frame + 1 settle call)
     frame_of = []

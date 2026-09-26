@@ -60,6 +60,7 @@ RAISES = (0.0, 0.01, 0.02, 0.03, 0.04, 0.06, 0.08, 0.10)    # m: how far a hand 
 PATH_SAMPLES = (0.12, 0.25, 0.37, 0.5, 0.62, 0.75, 0.87)    # where along a move the path is checked
 CARRY_AT = {"right": (-0.16, -0.08, TABLE_Z + 0.12), "left": (0.16, -0.08, TABLE_Z + 0.12)}   # robot frame
 _CARRY = {}
+AUTO_CLEAR = True                              # move a blocking object aside before a grasp (tools/clutter.py ablates it)
 LOOK_H = 0.7                                   # counter camera height above the counter top
 
 
@@ -332,6 +333,17 @@ class HomeBody(motor.Body):
             self.put_on(self.held[side], self.room)
         p, h = self.pos[o], OBJECTS[o][5]
         top = p[2] + h
+        if AUTO_CLEAR and not getattr(self, "_clearing", False):
+            # something else where the hand has to go: move it aside first, then take what we came for
+            for b in self._blockers(o, side, (p[0], p[1], top + 0.04)):
+                self.said.append(f"moving the {b} out of the way")
+                self._clearing = True
+                try:
+                    self.put_on(b, room)
+                finally:
+                    self._clearing = False
+                if self.held[side]:
+                    side = "left" if side == "right" else "right"
         if not self.move(side, (p[0], p[1], top + 0.12), why=f"pick {o}", grasp=o):
             return
         self.move(side, (p[0], p[1], top + 0.04), 0.6, grasp=o)
@@ -340,6 +352,24 @@ class HomeBody(motor.Body):
         self.held[side], self.where[o] = o, ("held", side)
         self.set_grip(side, 0.8, ("attach", side, mocap_name(o)[4:]))
         self.move(side, (p[0], p[1], top + 0.14), 0.6)
+
+    def _blockers(self, o, side, xyz):
+        """Other objects the hand would go through coming down onto o at xyz - above it, the way down, the grip
+        (checked on the body, nothing moved)."""
+        q, _ = reach.solve(self.m, xyz, side=side, base=self.base)
+        above, _ = reach.solve(self.m, np.asarray(xyz) + (0, 0, 0.08), side=side, base=self.base)
+        if q is None:
+            return []
+        hits = self._hits(side, q, grasp=o)
+        if above is not None:
+            hits += self._hits(side, above, grasp=o) + self._path_hits(side, above, q, grasp=o)
+        open_, self.grip[side] = self.grip[side], 0.8          # curling fingers sweep sideways into a neighbour
+        try:
+            hits += self._hits(side, q, grasp=o)
+        finally:
+            self.grip[side] = open_
+        return list(dict.fromkeys(h[1][4:].replace("_", " ") for h in hits
+                                  if h[1].startswith("obj_") and h[1][4:].replace("_", " ") in OBJECTS))
 
     def _holding(self, o):
         side = next((s for s, v in self.held.items() if v == o), None)
@@ -512,9 +542,11 @@ class HomeBody(motor.Body):
         if side is None:
             return
         # reuse the table-top toss in the robot's own frame: temporarily treat the parked frame as the origin
-        release = self._local_xyz((-0.12 if side == "right" else 0.12, -0.36), 1.05)
+        # juggle at chest height near the body, 25 cm over the counter - at 7 cm the hands went into the counter and
+        # the things on it (tools/collisions.py)
+        release = self._local_xyz((-0.12 if side == "right" else 0.12, -0.24), TABLE_Z + 0.25)
         to = to if to in ("right", "left") else side
-        catch = self._local_xyz((-0.12 if to == "right" else 0.12, -0.36), 1.05)
+        catch = self._local_xyz((-0.12 if to == "right" else 0.12, -0.24), TABLE_Z + 0.25)
         if not self.move(side, release, 0.8, why="toss"):
             return
         vz = np.sqrt(2 * motor.G * float(np.clip(height, 0.05, 0.5)))
@@ -574,6 +606,8 @@ class HomeBody(motor.Body):
     def run(self, program, finish=True):
         saved = motor.OBJ                     # motor.Body's generic actions look up object sizes here
         motor.OBJ = {o: (v[2], v[3], v[4], v[5]) for o, v in OBJECTS.items()}
+        if not hasattr(self, "pos0"):              # where things were when the program started (for replays)
+            self.pos0 = {o: p.copy() for o, p in self.pos.items()}
         try:
             return self._run(program, finish)
         finally:

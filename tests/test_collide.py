@@ -27,3 +27,14 @@ def test_second_dish_goes_where_the_hand_clears_the_first():
     b = home.HomeBody(M).run([{"do": "put_in", "obj": "cup", "into": "rack"},
                               {"do": "put_in", "obj": "plate", "into": "rack"}])
     assert not b.problems and b.where["plate"] == ("in", "rack")
+
+
+def test_moves_an_object_that_is_in_the_way():
+    import numpy as np
+    b = home.HomeBody(M)
+    pl = home.to_local(home.ROOMS["kitchen"], b.pos["plate"][:2])
+    c = home.to_world("kitchen", (pl[0] + 0.06, pl[1]))              # the cup right beside the plate
+    b.pos["cup"] = np.array([c[0], c[1], b.pos["cup"][2]])
+    b.run([{"do": "pick", "obj": "plate"}], finish=False)
+    assert "moving the cup out of the way" in b.said and not b.problems
+    assert b.where["plate"][0] == "held"
