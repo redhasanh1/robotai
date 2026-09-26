@@ -57,6 +57,10 @@ GPL license): `.venv\Scripts\python tools\fetch_inmoov_meshes.py`. Without it th
 
 ## 5. When the servos arrive (Monday) — safety first
 
+**Easiest:** `.venv\Scripts\python tools\monday.py` walks through all of this in order (finds the COM port, flashes,
+checks the link, safety checklist, servo test, range, speed) and stops before each step. `--side left` for the second
+hand, `--from 5` to pick up where you left off. The individual steps, if you'd rather run them yourself:
+
 1. Set the power supply to **6.0 V** on its display *before* connecting anything.
 2. 2200 µF capacitor across the PCA9685 V+ / GND terminal, **stripe to GND**.
 3. Supply GND and ESP32 GND connected together.
