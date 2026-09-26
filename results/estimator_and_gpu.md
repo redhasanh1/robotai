@@ -20,3 +20,14 @@ asym (held out)               15.6           3.5           3.4           2.3    
 | 1024 | 1.92 s | 1.9 ms | |
 
 CPU reference: 65 ms/candidate serial, 16 candidates in 0.18 s on an 8-process pool.
+
+# Camera rate check
+
+The laptop webcam measured 16 fps (not 30). Same estimator test on the development hand, 3 seeds:
+
+| camera | camera only | physics only | +camera | +sysid | +residual |
+|---|---|---|---|---|---|
+| 33 fps (assumed) | 16.0 | 6.3 | 6.1 | 5.4 | 1.7 deg |
+| 16 fps (measured) | 16.5 | 6.3 | 6.1 | 5.4 | 1.7 deg |
+
+Halving the frame rate costs nothing measurable: the physics carries the estimate between frames.
