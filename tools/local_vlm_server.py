@@ -7,6 +7,7 @@ a real model drive the loop with no key and no internet.
     .venv/Scripts/python tools/brain_live.py
 
 Model weights (~1 GB) download from Hugging Face the first time. LOCAL_VLM=<hf id> picks another model;
+LOCAL_TEXT=1 uses a text-only LLM (e.g. LOCAL_VLM=Qwen/Qwen2.5-3B-Instruct) - planning needs no vision.
 LOCAL_4BIT=1 loads it in 4-bit (e.g. LOCAL_VLM=Qwen/Qwen2.5-VL-3B-Instruct, ~7 GB download, fits in 6 GB VRAM).
 Only what hand.brain sends is supported: one system + one user message, text and at most one image, non-streaming.
 """
@@ -21,10 +22,24 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 MODEL_ID = os.environ.get("LOCAL_VLM", "HuggingFaceTB/SmolVLM-500M-Instruct")
 
 
+TEXT = os.environ.get("LOCAL_TEXT") == "1"      # text-only LLM (planning needs no vision: lighter, faster)
+
+
 def load():
     import torch
     from transformers import AutoModelForImageTextToText, AutoProcessor
     dev = "cuda" if torch.cuda.is_available() else "cpu"
+    if TEXT:
+        from transformers import AutoModelForCausalLM, AutoTokenizer
+        tok = AutoTokenizer.from_pretrained(MODEL_ID)
+        kw = {"device_map": "cuda"} if dev == "cuda" else {}
+        if os.environ.get("LOCAL_4BIT") == "1" and dev == "cuda":
+            from transformers import BitsAndBytesConfig
+            kw["quantization_config"] = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16,
+                                                           bnb_4bit_quant_type="nf4")
+        else:
+            kw["torch_dtype"] = torch.float16 if dev == "cuda" else torch.float32
+        return tok, AutoModelForCausalLM.from_pretrained(MODEL_ID, **kw).eval(), dev
     proc = AutoProcessor.from_pretrained(MODEL_ID)
     if os.environ.get("LOCAL_4BIT") == "1" and dev == "cuda":
         # 4-bit weights so a 3B VLM fits the 6 GB GTX 1660 Ti (Kimi round 5: the fair local baseline is the
@@ -65,7 +80,18 @@ class Handler(BaseHTTPRequestHandler):
     def do_POST(self):
         body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
         t0 = time.perf_counter()
-        reply = generate(body["messages"], int(body.get("max_tokens", 200)))
+        try:
+            reply = generate(body["messages"], int(body.get("max_tokens", 200)))
+        except Exception as e:                      # out of GPU memory etc: answer with an error, stay alive
+            import traceback
+            import torch
+            traceback.print_exc()
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+            self.send_response(500)
+            self.end_headers()
+            self.wfile.write(json.dumps({"error": f"{type(e).__name__}: {e}"[:300]}).encode())
+            return
         print(f"{(time.perf_counter() - t0) * 1000:.0f} ms  {reply[:90]!r}", flush=True)
         out = json.dumps({"object": "chat.completion", "model": MODEL_ID,
                           "choices": [{"index": 0, "message": {"role": "assistant", "content": reply}}]}).encode()
@@ -77,6 +103,8 @@ class Handler(BaseHTTPRequestHandler):
 
 def main():
     global PROC, MODEL, DEV
+    import faulthandler
+    faulthandler.enable(file=sys.stderr, all_threads=True)      # a native crash leaves a trace in the log
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8765
     print(f"loading {MODEL_ID} ...", flush=True)
     PROC, MODEL, DEV = load()
