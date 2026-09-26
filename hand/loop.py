@@ -27,10 +27,24 @@ from .config import HandConfig
 _POOL = None
 
 
+_GPU = {}
+
+
 def predict_all(qs, obj):
-    """Physics prediction for every candidate. Parallel across CPU cores when there are several
-    (HAND_WORKERS=0 forces serial): 16 candidates 1.03 s serial -> 0.18 s on 8 workers (16-thread CPU)."""
+    """Physics prediction for every candidate.
+    - n >= 64 and a CUDA GPU: NVIDIA MuJoCo Warp, all candidates as parallel worlds (1024 in 1.9 s on a 1660 Ti)
+    - otherwise parallel across CPU cores: 16 candidates 1.03 s serial -> 0.18 s on 8 workers
+    HAND_WORKERS=0 forces serial CPU, HAND_GPU=0 disables the GPU path."""
     global _POOL
+    if len(qs) >= 64 and os.environ.get("HAND_GPU", "1") != "0":
+        try:
+            from .gpu_sim import BatchGrasp
+            key = (obj, len(qs))
+            if key not in _GPU:
+                _GPU[key] = BatchGrasp(obj, len(qs))
+            return [dict(r, touching=[], slip_t=None) for r in _GPU[key].evaluate(qs)]
+        except Exception:                     # no CUDA / no mujoco_warp: fall back to CPU
+            pass
     workers = int(os.environ.get("HAND_WORKERS", min(8, (os.cpu_count() or 2) - 1)))
     if workers <= 1 or len(qs) < 4:
         return [sim.evaluate(q, obj) for q in qs]
@@ -39,8 +53,10 @@ def predict_all(qs, obj):
     return list(_POOL.map(sim.evaluate, qs, [obj] * len(qs)))
 
 
-def randomized_world(obj, seed):
-    """A sim that disagrees with the nominal model the way reality will."""
+def randomized_world(obj, seed, holdout=False):
+    """A sim that disagrees with the nominal model the way reality will.
+    holdout=True also swaps the CONTACT MODEL (softer contacts, pyramidal friction cone, no torsional friction,
+    lower impedance ratio) - physics the imagination does not share and that nothing was tuned on."""
     rng = np.random.default_rng(seed)
     servos = HandConfig().servos
     for s in servos:
@@ -54,6 +70,12 @@ def randomized_world(obj, seed):
     m.body_mass[bid] *= rng.uniform(0.6, 1.6)
     for g in gid:
         m.geom_friction[g, 0] *= rng.uniform(0.7, 1.2)
+    if holdout:
+        import mujoco
+        m.opt.cone = mujoco.mjtCone.mjCONE_PYRAMIDAL
+        m.opt.impratio = 1.0
+        m.geom_solref[:] = (0.02, 1.0)
+        m.geom_condim[:] = 3
     adr = m.jnt_qposadr[m.body_jntadr[bid]]
     w.data.qpos[adr:adr + 2] += rng.uniform(-0.006, 0.006, 2)   # object not exactly where it was last time
     w._settle_object()
@@ -105,14 +127,14 @@ def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=()):
 
 
 def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True, use_memory=True,
-            render=False, rng=None, veto=None, max_replans=2):
+            render=False, rng=None, veto=None, max_replans=2, holdout=False):
     """One task. With verify=True the robot checks itself after every try and replans on failure
     (new family if the physics had no better idea); with verify=False it assumes success, like most robots.
     veto (default: on when n > 1): if physics predicts that even the best-ranked grasp drops, replan with another
     family BEFORE touching anything - thinking is cheap, a dropped object is not."""
     rng = rng or np.random.default_rng(seed)
     veto = n > 1 if veto is None else veto
-    world = randomized_world(obj, seed)
+    world = randomized_world(obj, seed, holdout)
     image = world.render() if render else None
     fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image)
     failed_fams, k = set(), 0
@@ -137,9 +159,14 @@ def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True
         chosen = ranked[k]
         k += 1
         if tries > 1:
-            world = randomized_world(obj, seed)            # object put back, same world
-        truth = world.grasp_test(chosen["q"])["held"]
-        if verify:
+            world = randomized_world(obj, seed, holdout)   # object put back, same world
+        out = world.grasp_test(chosen["q"])
+        truth = out["held"]
+        if verify and out["slip_t"] is not None:
+            # fast path: the local 50 Hz slip check saw the object move off the palm - no model call needed
+            believed, cause = False, f"slipped {out['slip_t']:.2f} s after turning over (local slip check)"
+        elif verify:
+            # slow path: nothing slipped locally, ask the model to confirm from the camera
             img = world.render() if render else None
             v = brain.verdict(goal, img, truth) if isinstance(brain, StubBrain) else brain.verdict(goal, img)
             brain_s += brain.last_latency

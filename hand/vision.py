@@ -101,3 +101,18 @@ class FingerTracker:
         d = self.distances(detect(img))
         f = (self.open_d - d) / (self.open_d - self.closed_d)
         return np.clip(f, -0.1, 1.1)          # NaN stays NaN (unseen or uncalibrated)
+
+
+def marker_angle(img, marker_id):
+    """Rotation of one marker in the image plane, degrees (for the servo-horn disk). None if not seen."""
+    cv2, det, _ = _aruco()
+    gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY) if img.ndim == 3 else img
+    corners, ids, _ = det.detectMarkers(gray)
+    if ids is None:
+        return None
+    for c, i in zip(corners, ids.ravel()):
+        if int(i) == marker_id:
+            p = c.reshape(4, 2)
+            v = p[1] - p[0]
+            return float(np.degrees(np.arctan2(v[1], v[0])))
+    return None

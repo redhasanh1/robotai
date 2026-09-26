@@ -7,3 +7,6 @@ numpy
 pyserial
 opencv-contrib-python
 pytest
+
+# optional: NVIDIA MuJoCo Warp, GPU batch simulation (works on any CUDA GPU incl. GTX 1660 Ti)
+mujoco-warp

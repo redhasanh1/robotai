@@ -170,13 +170,19 @@ class SimHand:
         self.set_target(q_grasp)
         self.step(close_s)
         touching = self.contacts_with_object()
+        d0 = float(np.linalg.norm(self.object_pos() - self.palm_pos()))
         self.turn_over()
+        slip_t, t = None, 0.0
         for k in range(4):                       # sideways shake, +-3 m/s^2
             self.model.opt.gravity[1] = 3.0 if k % 2 == 0 else -3.0
-            self.step(hold_s / 4)
+            for _ in range(int(round(hold_s / 4 / 0.02))):
+                self.step(0.02)                  # 50 Hz: what a fast local check (object marker vs palm) sees
+                t += 0.02
+                if slip_t is None and np.linalg.norm(self.object_pos() - self.palm_pos()) - d0 > 0.015:
+                    slip_t = round(t, 2)
         d = float(np.linalg.norm(self.object_pos() - self.palm_pos()))
         held = d < 0.075
-        return {"held": bool(held), "dist": round(d, 4), "touching": touching,
+        return {"held": bool(held), "dist": round(d, 4), "touching": touching, "slip_t": slip_t,
                 "flexion": np.round(self.flexion(), 3).tolist()}
 
     def render(self, camera="front", w=320, h=240):

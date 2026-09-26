@@ -1,6 +1,8 @@
 """Watch the brain loop work in the MuJoCo sim.
 
     .venv/Scripts/python tools/demo.py                  # live 3D window, stub brain, all four objects
+    .venv/Scripts/python tools/demo.py --watch          # slow motion, loops forever (close the window to go on,
+                                                        # Ctrl+C in the terminal to stop)
     .venv/Scripts/python tools/demo.py --video demo.mp4 # no window: save a video instead
     BRAIN=openai .venv/Scripts/python tools/demo.py     # real model (BRAIN_URL / BRAIN_KEY or CEREBRAS_API_KEY)
 
@@ -47,11 +49,15 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--video", default="")
     ap.add_argument("--n", type=int, default=8)
+    ap.add_argument("--watch", action="store_true")
     a = ap.parse_args()
     b = brain.make(os.environ.get("BRAIN", "stub:cerebras"))
     mem = memory.Memory()
     frames = []
-    for i, obj in enumerate(["ball", "can", "block", "bar"]):
+    slow = 3.0 if a.watch else 1.0
+    objs = ["ball", "can", "block", "bar"]
+    rounds = 1000 if a.watch else 1
+    for i, obj in [(k, objs[k % 4]) for k in range(4 * rounds)]:
         r = loop.attempt(f"pick up the {obj}", obj, b, mem, n=a.n, seed=i, verify=True)
         report(obj, r)
         q = primitives.shape(r.chosen["family"], r.chosen["s"], r.chosen["t"])
@@ -61,8 +67,11 @@ def main():
         else:
             import mujoco.viewer
             with mujoco.viewer.launch_passive(world.model, world.data) as v:
-                play(world, q, lambda w: (v.sync(), time.sleep(0.02)))
-                time.sleep(1.0)
+                v.cam.distance, v.cam.azimuth, v.cam.elevation = 0.45, 130, -25
+                v.cam.lookat[:] = (0.03, 0, 0.11)
+                time.sleep(1.0 * slow)
+                play(world, q, lambda w: (v.sync(), time.sleep(0.02 * slow)))
+                time.sleep(1.5 * slow)
     if a.video:
         import cv2
         vw = cv2.VideoWriter(a.video, cv2.VideoWriter_fourcc(*"mp4v"), 50, (480, 360))
