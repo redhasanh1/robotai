@@ -82,3 +82,32 @@ def test_plant_backlash_and_rate_limit():
     p.reset(np.full(6, 1.0))
     down = p.rollout(np.ones(6), np.ones(6), [[0.5] * 6] * 100, 0.01)[-1, 0]
     assert up < 0.5 < down and down - up == pytest.approx(s.backlash + 2 * s.deadband, abs=0.005)   # slack + deadband hysteresis
+
+
+def test_heartbeat_thread_keeps_real_board_alive(monkeypatch):
+    """A blocked program (e.g. waiting for keyboard input) must not let the watchdog trip on real hardware."""
+    import time as _t
+    from hand import link as L
+
+    class FakeSerial(L.SerialTransport):
+        def __init__(self):
+            self.dev = FakeESP32()
+            self.t0 = _t.monotonic()
+
+        def write(self, data):
+            self.dev.advance(max(0.0, _t.monotonic() - self.t0 - self.dev.t))   # device clock = wall clock
+            self.dev.write(data)
+
+        def lines(self):
+            return self.dev.lines()
+
+        def advance(self, dt):
+            _t.sleep(dt)
+
+    tr = FakeSerial()
+    link = L.HandLink(tr, config.HandConfig())
+    link.move([0, 0.5, 0, 0, 0, 0])
+    _t.sleep(0.6)                                  # "blocked" 3x longer than the watchdog timeout
+    tr.write("H\n")
+    assert tr.dev.state == "RUN"
+    link.close()

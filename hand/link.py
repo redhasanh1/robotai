@@ -9,6 +9,7 @@
 For the fake board time only moves when you call tick(dt) or wait(seconds), which keeps tests and benchmarks
 deterministic. For the real board tick() just sends the heartbeat and reads replies.
 """
+import threading
 import time
 
 from . import config, protocol
@@ -54,6 +55,26 @@ class HandLink:
         self.tr, self.cfg = transport, cfg
         self.q_cmd = [0.0] * len(cfg.servos)   # fingers open, wrist centred
         self.log = []               # replies not consumed by a query (ERR WATCHDOG etc.)
+        self._lock = threading.RLock()
+        self._moved = False
+        self._alive = True
+        if isinstance(transport, SerialTransport):
+            # Real board: a background heartbeat keeps the 200 ms watchdog fed even while the program is blocked
+            # (waiting for you to type y/n, loading a model, thinking). Without it the hand goes limp mid-grasp -
+            # the fake board could not show this because its clock only moves when the code moves it.
+            threading.Thread(target=self._heartbeat, daemon=True).start()
+
+    def _heartbeat(self):
+        while self._alive:
+            if self._moved:
+                with self._lock:
+                    self.tr.write(protocol.move([s.to_us(v) for s, v in zip(self.cfg.servos, self.q_cmd)]))
+                    self.log.extend(self.tr.lines())
+            time.sleep(self.cfg.heartbeat_s)
+
+    def close(self):
+        self._alive = False
+        self.estop()
 
     @classmethod
     def open(cls, port=None, cfg=None):
@@ -69,12 +90,15 @@ class HandLink:
         return self.tr.dev if isinstance(self.tr, FakeTransport) else None
 
     def _send(self, text):
-        self.tr.write(text)
+        with self._lock:
+            self.tr.write(text)
 
     def _query(self, text, kind):
         self._send(text)
         for _ in range(40):
-            for ln in self.tr.lines():
+            with self._lock:
+                got = self.tr.lines()
+            for ln in got:
                 k, payload = protocol.parse_reply(ln)
                 if k == kind:
                     return payload
@@ -93,6 +117,7 @@ class HandLink:
         self.q_cmd = list(q)
         us = [s.to_us(v) for s, v in zip(self.cfg.servos, q)]
         self._send(protocol.move(us))
+        self._moved = True
 
     def tick(self, dt=0.02):
         """Heartbeat: re-send the current target (idempotent) and let time pass."""
@@ -105,6 +130,7 @@ class HandLink:
             self.tick(dt)
 
     def estop(self):
+        self._moved = False          # stop the heartbeat re-sending moves (the firmware would refuse them anyway)
         self._send(protocol.ESTOP)
 
     def resume(self):
