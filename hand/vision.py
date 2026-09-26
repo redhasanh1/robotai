@@ -116,3 +116,16 @@ def marker_angle(img, marker_id):
             v = p[1] - p[0]
             return float(np.degrees(np.arctan2(v[1], v[0])))
     return None
+
+
+def open_camera(index=0, exposure=-6):
+    """Webcam with auto-exposure and autofocus OFF (Kimi round 5: exposure hunting during a fast finger close
+    shows up as fake motion in the data). exposure is the DirectShow log2-seconds value: -6 ~ 1/64 s.
+    If the picture is too dark, try -5 or -4; keep it fixed for a whole logging session."""
+    import cv2
+    cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+    cap.set(cv2.CAP_PROP_AUTO_EXPOSURE, 0.25)       # DirectShow: 0.25 = manual, 0.75 = auto
+    cap.set(cv2.CAP_PROP_EXPOSURE, exposure)
+    cap.set(cv2.CAP_PROP_AUTOFOCUS, 0)
+    cap.set(cv2.CAP_PROP_FPS, 30)
+    return cap

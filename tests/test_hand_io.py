@@ -111,3 +111,15 @@ def test_heartbeat_thread_keeps_real_board_alive(monkeypatch):
     tr.write("H\n")
     assert tr.dev.state == "RUN"
     link.close()
+
+
+def test_watchdog_timeout_is_settable_and_boot_reports_reset():
+    d = FakeESP32()
+    assert d.lines()[0].endswith("reset=POWERON")
+    d.write("D 500\n")
+    assert d.lines()[-1] == "OK D 500"
+    d.write("M 1500 1500 1500 1500 1500 1500\n")
+    d.advance(0.4)
+    assert d.state == "RUN"              # 400 ms of silence is fine with a 500 ms timeout
+    d.advance(0.2)
+    assert d.state == "WATCHDOG"

@@ -43,7 +43,7 @@ class FakeCam:
 class RealCam:
     def __init__(self, index):
         import cv2
-        self.cap = cv2.VideoCapture(index, cv2.CAP_DSHOW)
+        self.cap = vision.open_camera(index)
         self.cap.set(cv2.CAP_PROP_FPS, 30)
 
     def angle(self):

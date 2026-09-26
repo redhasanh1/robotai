@@ -63,7 +63,21 @@ console, servo test, watch the sim hand, tests, benchmark.
 5. With the horn on, find each finger's open/closed pulse:
    `.venv\Scripts\python tools\servo_bench.py range COM5 1` (channel 1 = index; 0 thumb … 4 pinky, 5 wrist).
    These become a hard limit in the firmware: the servo can never be driven past them.
-6. **Never leave it powered while you're away.** There's no fuse on this build.
+6. Measure the USB link before trusting the 0.2 s watchdog:
+   `.venv\Scripts\python tools\link_jitter.py COM5` (add `--apply` to set the timeout it recommends).
+7. Measure each servo's real speed (marker on the horn, webcam on it):
+   `.venv\Scripts\python tools\servo_characterize.py COM5 1` — one run per channel. Cheap clone servos all
+   differ; the physics needs each one's own numbers.
+8. If the ESP32 ever restarts by itself, look at its first line: `BOOT hand-esp32 0.1 reset=BROWNOUT` means the
+   power sagged (servos starting together, a loose capacitor), not a code bug. Re-seat the 2200 µF cap.
+9. Before any tendon goes on: bend every printed finger by hand. A stiff hinge makes the servo stall and get hot.
+10. **Never leave it powered while you're away.** There's no fuse on this build.
+
+## 6. Run the brain on the real hand
+
+`.venv\Scripts\python tools\run_hand.py COM5 ball --cam 0`: same brain as the sim. You put the object in the
+palm and answer y/n; memory is kept in `logs\memory.sqlite`, so it gets better across sessions.
+The control panel (`.venv\Scripts\pythonw tools\panel.py`) has a big **STOP ALL** button for anything running.
 
 ## Where things live
 

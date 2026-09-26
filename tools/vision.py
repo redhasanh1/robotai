@@ -18,7 +18,7 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def live(cam=0):
     import cv2
     import numpy as np
-    cap = cv2.VideoCapture(cam, cv2.CAP_DSHOW)
+    cap = vision.open_camera(cam)
     tr = vision.FingerTracker(os.path.join(ROOT, "vision_calibration.json"))
     names = ["thumb", "index", "middle", "ring", "pinky"]
     while True:

@@ -11,19 +11,21 @@
 //   - Staggered start: channels are switched on one at a time, 150 ms apart (no 6-servo inrush at once).
 //   - Clamp: every pulse is clamped to the channel's [min,max] (defaults 1300..1700 us until calibrated).
 //   - Slew limit: pulses move toward the target at most W us per second (default 1500 us/s).
-//   - Watchdog: after the first command, 200 ms without any valid line -> outputs off (state WATCHDOG).
+//   - Watchdog: after the first command, 200 ms (D command, 100-2000) without a valid line -> outputs off.
+//   - BOOT line reports the reset reason; reset=BROWNOUT means the power rail sagged, not a code bug.
 //   - E-stop: 'E' turns outputs off until 'R'.
 //
 // No libraries needed beyond the ESP32 Arduino core (Wire + Preferences).
 
 #include <Wire.h>
 #include <Preferences.h>
+#include <esp_system.h>
 
 #define FW_VERSION "0.1"
 #define NCH 6
 #define PCA_ADDR 0x40
 #define PIN_OE 25
-#define WATCHDOG_MS 200
+#define WATCHDOG_DEFAULT_MS 200
 #define STAGGER_MS 150
 #define TICK_MS 10  // 100 Hz servo update
 
@@ -37,6 +39,7 @@ uint16_t lo[NCH], hi[NCH];      // clamp per channel
 float cur[NCH];                 // where the slew limiter is now (us); 0 = channel not started
 uint16_t target[NCH];           // commanded (clamped) pulse; 0 = never commanded
 uint32_t slewUsPerS = 1500;
+uint32_t watchdogMs = WATCHDOG_DEFAULT_MS;   // D command; raise it if the real USB link has latency spikes
 uint32_t lastRx = 0, lastTick = 0, enableAt[NCH];
 bool everCommanded = false;
 char line[96];
@@ -89,6 +92,7 @@ void loadPrefs() {
     snprintf(k, sizeof k, "h%d", i); hi[i] = prefs.getUShort(k, 1700);
   }
   slewUsPerS = prefs.getUInt("slew", 1500);
+  watchdogMs = prefs.getUInt("wd", WATCHDOG_DEFAULT_MS);
   prefs.end();
 }
 
@@ -100,6 +104,7 @@ void savePrefs() {
     snprintf(k, sizeof k, "h%d", i); prefs.putUShort(k, hi[i]);
   }
   prefs.putUInt("slew", slewUsPerS);
+  prefs.putUInt("wd", watchdogMs);
   prefs.end();
 }
 
@@ -151,6 +156,9 @@ void handle(char* s) {
       if (argc) goto badcount;
       if (state == ESTOP || state == WATCHDOG) { startRun(); }
       Serial.println("OK R"); return;
+    case 'D':
+      if (argc != 1) goto badcount;
+      watchdogMs = constrain(a[0], 100, 2000); savePrefs(); Serial.printf("OK D %lu\n", (unsigned long)watchdogMs); return;
     case 'W':
       if (argc != 1) goto badcount;
       slewUsPerS = constrain(a[0], 50, 20000); savePrefs(); Serial.printf("OK W %lu\n", (unsigned long)slewUsPerS); return;
@@ -189,7 +197,12 @@ void setup() {
     while (true) { Serial.println("ERR PCA9685 not found at 0x40 - check SDA 21 / SCL 22 / 3V3 / GND"); delay(1000); }
   }
   for (int i = 0; i < NCH; i++) pcaPulse(i, 0);
-  Serial.println("BOOT hand-esp32 " FW_VERSION);
+  // Why did we (re)start? BROWNOUT = the 6 V rail sagged and took the 3.3 V side with it (servos starting
+  // together, loose cap) - it looks exactly like a software crash, so say it out loud.
+  const char* why[] = {"UNKNOWN", "POWERON", "EXT", "SW", "PANIC", "INT_WDT", "TASK_WDT", "WDT", "DEEPSLEEP",
+                       "BROWNOUT", "SDIO"};
+  int r = (int)esp_reset_reason();
+  Serial.printf("BOOT hand-esp32 " FW_VERSION " reset=%s\n", (r >= 0 && r <= 10) ? why[r] : "OTHER");
 }
 
 void loop() {
@@ -200,9 +213,9 @@ void loop() {
     else { lineLen = 0; Serial.println("ERR line too long"); }
   }
   uint32_t now = millis();
-  if (state == RUN && everCommanded && now - lastRx > WATCHDOG_MS) {
+  if (state == RUN && everCommanded && now - lastRx > watchdogMs) {
     stopAll(WATCHDOG);
-    Serial.println("ERR WATCHDOG no command for 200 ms, outputs off, send R");
+    Serial.printf("ERR WATCHDOG no command for %lu ms, outputs off, send R\n", (unsigned long)watchdogMs);
   }
   if (now - lastTick >= TICK_MS) {
     float step = slewUsPerS * (now - lastTick) / 1000.0f;

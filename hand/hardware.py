@@ -23,8 +23,8 @@ class HardwareWorld:
         self.close_s, self.hold_s = close_s, hold_s
         self.cap = None
         if camera is not None:
-            import cv2
-            self.cap = cv2.VideoCapture(camera, cv2.CAP_DSHOW)
+            from .vision import open_camera
+            self.cap = open_camera(camera)
 
     def render(self, *_a, **_k):
         if self.cap is None:

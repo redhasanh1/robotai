@@ -7,6 +7,8 @@ Laptop -> ESP32 (one command per line, '\n' terminated):
     S ch us                move one channel
     L ch min max           set the safety clamp for a channel (saved in flash)
     W us_per_s             slew limit, how fast a pulse may change (saved in flash)
+    D ms                   watchdog timeout, 100-2000 ms, default 200 (saved in flash) - raise only after
+                           tools/link_jitter.py shows the real USB link needs it
     E                      e-stop: outputs off (servos go limp) until R
     R                      resume after an e-stop or watchdog trip
     T                      telemetry          -> "TEL ms state us0 .. us5"
@@ -15,7 +17,7 @@ ESP32 -> laptop:
     OK ...                 command accepted
     ERR <reason>           command rejected (bad syntax, channel out of range, ...)
     TEL ms state us0..us5  state = RUN | ESTOP | WATCHDOG | IDLE; us = where the slew limiter is now
-    BOOT hand-esp32 0.1    printed once at power-up
+    BOOT hand-esp32 0.1 reset=WHY   printed once at power-up; reset=BROWNOUT means the supply sagged
 
 Safety lives in the firmware, not here: the clamp, the slew limit and the 200 ms watchdog all run on the ESP32
 whether or not the laptop is sane. This module only formats and parses lines.
@@ -36,6 +38,10 @@ def set_one(ch, us):
 
 def limit(ch, lo, hi):
     return f"L {int(ch)} {int(lo)} {int(hi)}\n"
+
+
+def watchdog(ms):
+    return f"D {int(ms)}\n"
 
 
 def slew(us_per_s):
@@ -68,7 +74,7 @@ def parse_command(line):
         nums = [int(x) for x in a]
     except ValueError:
         raise ValueError("not a number")
-    want = {"V": 0, "H": 0, "E": 0, "R": 0, "T": 0, "M": NCH, "S": 2, "L": 3, "W": 1}
+    want = {"V": 0, "H": 0, "E": 0, "R": 0, "T": 0, "M": NCH, "S": 2, "L": 3, "W": 1, "D": 1}
     if c not in want:
         raise ValueError("unknown command")
     if len(nums) != want[c]:

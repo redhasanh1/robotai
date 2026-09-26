@@ -30,7 +30,8 @@ class FakeESP32:
         self.state = "IDLE"
         self.commanded = False
         self.last_rx = 0.0
-        self.out = deque(["BOOT hand-esp32 " + protocol.VERSION])
+        self.out = deque(["BOOT hand-esp32 " + protocol.VERSION + " reset=POWERON"])
+        self.watchdog_s = WATCHDOG_S
         self.stop = None          # per-joint obstacle flexion (set by a scene), NaN = free
 
     # ---- serial-like interface ----
@@ -77,6 +78,9 @@ class FakeESP32:
             if self.state in ("ESTOP", "WATCHDOG"):
                 self._start()
             self.out.append("OK R")
+        elif c == "D":
+            self.watchdog_s = min(max(a[0], 100), 2000) / 1000.0
+            self.out.append(f"OK D {int(self.watchdog_s * 1000)}")
         elif c == "W":
             self.slew = float(min(max(a[0], 50), 20000))
             self.out.append(f"OK W {int(self.slew)}")
@@ -102,9 +106,9 @@ class FakeESP32:
         while self.t < end - 1e-12:
             h = min(TICK_S, end - self.t)
             self.t += h
-            if self.state == "RUN" and self.commanded and self.t - self.last_rx > WATCHDOG_S:
+            if self.state == "RUN" and self.commanded and self.t - self.last_rx > self.watchdog_s:
                 self._stop_all("WATCHDOG")
-                self.out.append("ERR WATCHDOG no command for 200 ms, outputs off, send R")
+                self.out.append(f"ERR WATCHDOG no command for {int(self.watchdog_s * 1000)} ms, outputs off, send R")
             if self.state == "RUN":
                 step = self.slew * h
                 for i in range(protocol.NCH):
