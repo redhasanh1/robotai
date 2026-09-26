@@ -50,14 +50,25 @@ def main():
     ap.add_argument("--video", default="")
     ap.add_argument("--n", type=int, default=8)
     ap.add_argument("--watch", action="store_true")
+    ap.add_argument("--say", default="", help='a command, e.g. --say "pick up the orange"')
     a = ap.parse_args()
     b = brain.make(os.environ.get("BRAIN", "stub:cerebras"))
     mem = memory.Memory()
     frames = []
-    slow = 3.0 if a.watch else 1.0
+    slow = 3.0 if (a.watch or a.say) else 1.0
     objs = ["ball", "can", "block", "bar"]
     rounds = 1000 if a.watch else 1
-    for i, obj in [(k, objs[k % 4]) for k in range(4 * rounds)]:
+    todo = [(k, objs[k % 4]) for k in range(4 * rounds)]
+    if a.say:
+        plan = b.plan(a.say)
+        print(f'you: "{a.say}"')
+        for st in plan["steps"]:
+            print(f"  step: {st.get('skill')} {st.get('object', '')}" + ("" if st["ready"] else "   (skill not built yet)"))
+        print(f"robot: {plan['say']}", flush=True)
+        todo = [(0, st["sim_object"]) for st in plan["steps"] if st["ready"]][:1]
+        if not todo:
+            return
+    for i, obj in todo:
         r = loop.attempt(f"pick up the {obj}", obj, b, mem, n=a.n, seed=i, verify=True)
         report(obj, r)
         q = primitives.shape(r.chosen["family"], r.chosen["s"], r.chosen["t"])
@@ -72,6 +83,9 @@ def main():
                 time.sleep(1.0 * slow)
                 play(world, q, lambda w: (v.sync(), time.sleep(0.02 * slow)))
                 time.sleep(1.5 * slow)
+                while a.say and v.is_running():         # a single command: keep the result on screen until closed
+                    v.sync()
+                    time.sleep(0.05)
     if a.video:
         import cv2
         vw = cv2.VideoWriter(a.video, cv2.VideoWriter_fourcc(*"mp4v"), 50, (480, 360))

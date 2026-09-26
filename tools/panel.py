@@ -44,7 +44,7 @@ class Panel:
     def __init__(self):
         self.w = tk.Tk()
         self.w.title("PINN Humanoid - control")
-        self.w.geometry("360x320+40+40")
+        self.w.geometry("420x520+40+40")
         self.w.attributes("-topmost", True)
         tk.Label(self.w, text="PINN Humanoid", font=("Segoe UI", 14, "bold")).pack(pady=(10, 4))
         tk.Button(self.w, text="▶  Watch the sim hand", font=("Segoe UI", 11), command=self.watch).pack(fill="x", padx=16, pady=4)
@@ -58,6 +58,23 @@ class Panel:
     def watch(self):
         subprocess.Popen([PY, os.path.join(ROOT, "tools", "demo.py"), "--watch"], cwd=ROOT,
                          creationflags=subprocess.CREATE_NO_WINDOW)
+        self.w.after(1500, self.refresh)
+
+    def say(self):
+        text = self.cmd.get().strip()
+        if not text:
+            return
+        self.out.delete("1.0", "end")
+        self.out.insert("end", "thinking...\n")
+        p = subprocess.Popen([PY, "-u", os.path.join(ROOT, "tools", "demo.py"), "--say", text], cwd=ROOT,
+                             stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                             creationflags=subprocess.CREATE_NO_WINDOW)
+
+        def pump():
+            for line in p.stdout:
+                self.w.after(0, lambda ln=line: (self.out.insert("end", ln), self.out.see("end")))
+        import threading
+        threading.Thread(target=pump, daemon=True).start()
         self.w.after(1500, self.refresh)
 
     def stop_all(self):

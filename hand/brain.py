@@ -52,6 +52,8 @@ def _lenient(kind, text, n=0):
         hits = [(low.find(f), f) for f in primitives.FAMILIES if f in low]
         fam = min(hits)[1] if hits else "power"
         return {"family": fam, "why": text.strip()[:120]}, False
+    if kind == "plan":
+        return {"steps": [], "say": text.strip()[:160]}, False
     if kind == "rank":
         order = []
         for x in re.findall(r"\d+", text):
@@ -61,6 +63,25 @@ def _lenient(kind, text, n=0):
     held = (bool(re.search(r"\b(yes|held|holding|still in|true)\b", low))
             and not re.search(r"\b(no|not|dropped|fell|false)\b", low))
     return {"held": held, "cause": "" if held else text.strip()[:80]}, False
+
+
+SKILLS = {"grasp": "close the hand on an object that is in the palm and hold it (works now)"}
+FUTURE = {"reach": "move the arm to an object (needs the arm)", "place": "put a held object down (needs the arm)",
+          "wipe": "rub a surface (needs the arm)", "navigate": "drive or walk somewhere (needs the base or legs)",
+          "open": "open a door, drawer or tap (needs the arm)", "pour": "tip a held container (needs the arm)"}
+OBJECT_WORDS = {"ball": "ball", "orange": "ball", "apple": "ball", "can": "can", "bottle": "can", "cup": "can",
+                "block": "block", "cube": "block", "box": "block", "bar": "bar", "stick": "bar", "pen": "bar",
+                "handle": "bar", "spoon": "bar", "fork": "bar"}
+
+
+def find_object(text):
+    """First known object word in a sentence -> sim object name, or None."""
+    for w in re.findall(r"[a-z]+", text.lower()):
+        if w in OBJECT_WORDS:
+            return OBJECT_WORDS[w]
+        if w.endswith("s") and w[:-1] in OBJECT_WORDS:
+            return OBJECT_WORDS[w[:-1]]
+    return None
 
 
 class OpenAIBrain:
@@ -93,6 +114,15 @@ class OpenAIBrain:
         self.json_ok.append(ok)
         return reply
 
+    def plan(self, command, image=None):
+        """Break a spoken command into skill steps. Honest about skills the robot doesn't have yet."""
+        skills = "\n".join(f"- {k}: {v}" for k, v in {**SKILLS, **FUTURE}.items())
+        r = self._ask(
+            f'Command: "{command}"\nSkills:\n{skills}\nBreak the command into steps using only these skills. '
+            'Reply {"steps": [{"skill": "<name>", "object": "<thing>"}], "say": "<one short sentence to the user>"}',
+            image, 200, "plan")
+        return _finish_plan(command, r)
+
     def choose(self, goal, image, memory_text, obj_hint=""):
         return self._ask(
             f"Task: {goal}\nObject: {obj_hint or 'see image'}\nGrasp families:\n{primitives.describe()}\n\n"
@@ -114,6 +144,18 @@ class OpenAIBrain:
             f"Task: {goal}\nThis image is right after the grasp, hand turned over. Is the object still in the hand? "
             'Reply {"held": true|false, "cause": "<if dropped, the likely reason in under 12 words>"}', image, 60,
             "verdict")
+
+
+def _finish_plan(command, r):
+    """Normalise a plan: map objects to the sim's names, split steps into can-do-now vs needs-hardware."""
+    steps = [x for x in r.get("steps", []) if isinstance(x, dict)]
+    if not steps and find_object(command):
+        steps = [{"skill": "grasp", "object": find_object(command)}]
+    for x in steps:
+        x["sim_object"] = find_object(str(x.get("object", ""))) or find_object(command)
+        x["ready"] = x.get("skill") in SKILLS and x["sim_object"] is not None
+    return {"steps": steps, "say": r.get("say", ""),
+            "missing": sorted({x.get("skill") for x in steps if x.get("skill") not in SKILLS})}
 
 
 # ---------------------------------------------------------------- no-network stand-in
@@ -142,6 +184,27 @@ class StubBrain:
     def _cost(self, out_tokens):
         self.last_latency = self.ttft + out_tokens / self.tps
         self.calls.append(self.last_latency)
+
+    def plan(self, command, image=None):
+        """Keyword planner: grasp known objects; name the missing skills for everything else."""
+        self._cost(60)
+        low = command.lower()
+        obj = find_object(command)
+        steps = []
+        if any(w in low for w in ("dish", "wash", "clean", "wipe")):
+            steps = [{"skill": "reach", "object": "plate"}, {"skill": "grasp", "object": "plate"},
+                     {"skill": "navigate", "object": "sink"}, {"skill": "wipe", "object": "plate"},
+                     {"skill": "place", "object": "rack"}]
+        elif any(w in low for w in ("walk", "dog", "go to", "bring", "fetch")):
+            steps = [{"skill": "navigate", "object": "leash"}, {"skill": "grasp", "object": obj or "leash"},
+                     {"skill": "navigate", "object": "outside"}]
+        elif obj:
+            steps = [{"skill": "grasp", "object": obj}]
+        r = _finish_plan(command, {"steps": steps})
+        r["say"] = ("On it." if steps and not r["missing"] else
+                    f"I can plan that, but I still need these skills: {', '.join(r['missing'])}." if steps else
+                    "I don't know how to do that yet. Try: pick up the ball / can / block / bar.")
+        return r
 
     def choose(self, goal, image, memory_text, obj_hint=""):
         """What a sensible model does with the prompt: reuse what held on this object, avoid what only dropped."""
