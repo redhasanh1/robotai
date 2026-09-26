@@ -86,3 +86,8 @@ def test_ai_program_is_checked_on_the_body_and_repaired():
         srv.shutdown()
     assert len(_AI.calls) == 2 and "cannot reach" in _AI.calls[1]
     assert not problems and prog[-1]["do"] == "toss"
+
+
+def test_end_markers_and_wait_are_not_problems():
+    b = motor.Body(M).run([{"do": "wave"}, {"do": "wait", "seconds": 1}, {"do": "terminate"}, {"do": "done"}])
+    assert not b.problems

@@ -174,7 +174,11 @@ def main():
         else:
             say(f"  AI brain is off (panel: Start AI brain) - using built-in routines for \"{rest}\"")
         t0 = time.time()
-        extra, _, said = think(rest, m, brain, say)
+        try:
+            extra, _, said = think(rest, m, brain, say)
+        except (OSError, ValueError, KeyError) as e:        # the brain crashed or timed out: don't die with it
+            say(f"  AI brain stopped answering ({type(e).__name__}) - falling back to built-in routines")
+            extra, _, said = think(rest, m, brain_mod.StubBrain(), say)
         if url:
             say(f"  thought for {time.time() - t0:.0f} s")
         prog += extra

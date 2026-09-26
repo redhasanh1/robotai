@@ -399,6 +399,10 @@ class Body:
                     self.gesture(a.get("name"))
                 elif do == "say":
                     self.said.append(str(a.get("text", "")))
+                elif do == "wait":
+                    self.frames.append((float(np.clip(a.get("seconds", 0.5), 0, 5)), self._pose(), None))
+                elif do in ("terminate", "end", "done", "stop", "finish"):
+                    pass            # models like to close programs with an end marker - harmless, not a problem
                 else:
                     self.problems.append(f"step {i + 1}: unknown action '{do}'")
             except Exception as e:           # a malformed step must not crash the robot
