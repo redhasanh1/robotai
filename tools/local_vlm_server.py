@@ -65,6 +65,15 @@ def generate(messages, max_tokens):
     text = "\n".join(p["text"] for p in parts if p["type"] == "text")
     images = [Image.open(io.BytesIO(base64.b64decode(p["image_url"]["url"].split(",", 1)[1]))).convert("RGB")
               for p in parts if p["type"] == "image_url"][:1]
+    if TEXT:
+        msgs = [{"role": "system", "content": system}, {"role": "user", "content": text}]
+        enc = PROC.apply_chat_template(msgs, add_generation_prompt=True, return_tensors="pt", return_dict=True)
+        ids = enc["input_ids"].to(DEV)
+        with torch.no_grad():
+            out = MODEL.generate(ids, attention_mask=enc["attention_mask"].to(DEV), max_new_tokens=max_tokens,
+                                 do_sample=False)
+        print(f"  prompt {ids.shape[1]} tokens", flush=True)
+        return PROC.decode(out[0, ids.shape[1]:], skip_special_tokens=True).strip()
     content = ([{"type": "image"}] if images else []) + [{"type": "text", "text": system + "\n\n" + text}]
     prompt = PROC.apply_chat_template([{"role": "user", "content": content}], add_generation_prompt=True)
     inputs = PROC(text=prompt, images=images or None, return_tensors="pt").to(DEV)
