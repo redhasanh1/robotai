@@ -56,6 +56,8 @@ def _lenient(kind, text, n=0):
         return {"steps": [], "say": text.strip()[:160]}, False
     if kind == "program":
         return {"program": [], "say": text.strip()[:160]}, False
+    if kind == "goal":
+        return {"wrong": "", "goal": text.strip()[:200]}, False
     if kind == "rank":
         order = []
         for x in re.findall(r"\d+", text):
@@ -116,7 +118,17 @@ class OpenAIBrain:
         self.json_ok.append(ok)
         return reply
 
-    def program(self, command, world, actions_doc, problems=None, previous=None):
+    def goal(self, command, world):
+        """Scene-state step before planning: what is wrong now, and what should be true when the robot is done.
+        Small models jump from words straight to actions ('spilled' -> tidy the remote); naming the end state first
+        gives the planner something to aim at. Generic - no task-specific rules."""
+        return self._ask(
+            f'A person in this home says: "{command}"\n\n{world}\n\nDo not plan actions yet. Think about the situation: '
+            'what is wrong or needed right now, and what should be true when you are finished? '
+            'Reply with ONE JSON object: {"wrong": "<what is wrong now>", "goal": "<what should be true after>"}',
+            None, 120, "goal")
+
+    def program(self, command, world, actions_doc, problems=None, previous=None, goal=""):
         """Write (or repair) a motor program for the full robot: -> {"program": [...], "say": "..."}."""
         fix = ""
         if problems:
@@ -125,7 +137,8 @@ class OpenAIBrain:
         return self._ask(
             "You control a humanoid robot's two arms in a simulator. Write a program for this request, thinking about "
             "how a person would do it with two hands and the objects on the table.\n"
-            f'Request: "{command}"\n\n{world}\n\nAvailable actions (JSON):\n{actions_doc}\n{fix}\n'
+            f'Request: "{command}"\n' + (f"The situation: {goal}\n" if goal else "") +
+            f'\n{world}\n\nAvailable actions (JSON):\n{actions_doc}\n{fix}\n'
             'Reply with ONE JSON object: {"program": [ ...actions... ], "say": "<one short sentence to the person>"}',
             None, 700, "program")
 
@@ -200,7 +213,7 @@ class StubBrain:
         self.last_latency = self.ttft + out_tokens / self.tps
         self.calls.append(self.last_latency)
 
-    def program(self, command, world, actions_doc, problems=None, previous=None):
+    def program(self, command, world, actions_doc, problems=None, previous=None, goal=""):
         """No model: translate what the keyword planner understands, plus a few built-in routines."""
         self._cost(120)
         low = command.lower()

@@ -280,7 +280,7 @@ def examples_for(command, k=4, hints=False):
     return pool[:k]
 
 
-def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False):
+def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False, situate=False):
     """AI writes a home program, the body checks it, the AI repairs it. With use_examples the most similar tasks
     the robot already knows are put in the prompt (in-context learning - no training)."""
     world = home.describe_world(home.HomeBody(m))
@@ -288,7 +288,12 @@ def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False
         world += "\n\nTasks you have done before (request -> program that worked):\n" + "\n".join(
             f'- "{r}" -> {json.dumps(p)}' for r, p in examples_for(command, hints=hints) if r != command)
     doc = actions_doc()
-    reply = brain.program(command, world, doc)
+    goal = ""
+    if situate and hasattr(brain, "goal"):          # scene-state step first (Kimi round 8, lever 2)
+        g = brain.goal(command, world)
+        goal = "; ".join(str(g.get(k, "")).strip() for k in ("wrong", "goal") if str(g.get(k, "")).strip())
+        say(f"  situation: {goal}")
+    reply = brain.program(command, world, doc, goal=goal)
     prog = reply.get("program") or []
     for r in range(rounds + 1):
         low = [f"step {i + 1}: '{a.get('do')}' is not allowed - use only: {', '.join(HIGH_LEVEL)}"
@@ -299,7 +304,7 @@ def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False
             (f", problems: {'; '.join(problems[:2])}" if problems else ", checks out on the body"))
         if not problems or r == rounds:
             break
-        reply = brain.program(command, world, doc, problems=problems, previous=prog)
+        reply = brain.program(command, world, doc, problems=problems, previous=prog, goal=goal)
         prog = reply.get("program") or prog
     return prog, reply.get("say", "")
 
