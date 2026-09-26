@@ -136,7 +136,7 @@ def to_md(r):
             m = json.load(open(os.path.join(OUT, f)))
             lat = {x["n"]: x["decision_s"] for x in m["latency"]}
             L.append(f"| {f[11:-5]} MEASURED ({m['model']}, {m['when']}) | " +
-                     " | ".join(f"{lat[n]:.2f}s" if n in lat else "-" for n in r["speed"][0]["decision_s"]) + " | |")
+                     " | ".join(f"{lat[int(n)]:.2f}s" if int(n) in lat else "-" for n in r["speed"][0]["decision_s"]) + " | |")
     return "\n".join(L) + "\n"
 
 
