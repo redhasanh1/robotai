@@ -6,7 +6,8 @@ a real model drive the loop with no key and no internet.
     $env:BRAIN_URL = "http://127.0.0.1:8765/v1"; $env:BRAIN_MODEL = "local"; $env:BRAIN_LABEL = "local_1660ti"
     .venv/Scripts/python tools/brain_live.py
 
-Model weights (~1 GB) download from Hugging Face the first time. LOCAL_VLM=<hf id> picks another model.
+Model weights (~1 GB) download from Hugging Face the first time. LOCAL_VLM=<hf id> picks another model;
+LOCAL_4BIT=1 loads it in 4-bit (e.g. LOCAL_VLM=Qwen/Qwen2.5-VL-3B-Instruct, ~7 GB download, fits in 6 GB VRAM).
 Only what hand.brain sends is supported: one system + one user message, text and at most one image, non-streaming.
 """
 import base64
@@ -25,8 +26,15 @@ def load():
     from transformers import AutoModelForImageTextToText, AutoProcessor
     dev = "cuda" if torch.cuda.is_available() else "cpu"
     proc = AutoProcessor.from_pretrained(MODEL_ID)
-    model = AutoModelForImageTextToText.from_pretrained(
-        MODEL_ID, torch_dtype=torch.float16 if dev == "cuda" else torch.float32).to(dev).eval()
+    if os.environ.get("LOCAL_4BIT") == "1" and dev == "cuda":
+        # 4-bit weights so a 3B VLM fits the 6 GB GTX 1660 Ti (Kimi round 5: the fair local baseline is the
+        # biggest model the laptop can hold, not a 500M one that can't follow a reply format)
+        from transformers import BitsAndBytesConfig
+        q = BitsAndBytesConfig(load_in_4bit=True, bnb_4bit_compute_dtype=torch.float16, bnb_4bit_quant_type="nf4")
+        model = AutoModelForImageTextToText.from_pretrained(MODEL_ID, quantization_config=q, device_map="cuda").eval()
+    else:
+        model = AutoModelForImageTextToText.from_pretrained(
+            MODEL_ID, torch_dtype=torch.float16 if dev == "cuda" else torch.float32).to(dev).eval()
     return proc, model, dev
 
 

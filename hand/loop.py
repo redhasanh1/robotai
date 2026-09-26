@@ -94,8 +94,35 @@ class Result:
     log: list = field(default_factory=list)
 
 
-def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=()):
-    """choose -> sample -> predict -> rank. Returns (family, ranked candidates, brain_s, physics_s, log)."""
+def _score(pred):
+    return (pred["held"], len(pred.get("touching", [])), -pred["dist"])
+
+
+def cem(fam, obj, rng, center=None, pop=32, iters=3, elite=0.25):
+    """Cross-entropy search over the family's two knobs (s, t) using physics only - no model calls.
+    Kimi round 5: the model picks the family (few, discrete, needs judgment), physics searches the numbers
+    (many, continuous, needs none). Returns all evaluated candidates, best first."""
+    mu = np.array(center or primitives.DEFAULT_PARAMS[fam], float)
+    sd = np.array([0.15, 0.2])
+    seen = []
+    for _ in range(iters):
+        st = np.clip(mu + sd * rng.normal(0, 1, (pop, 2)), [0.3, 0.0], [1.0, 1.0])
+        st[0] = mu
+        cands = [{"family": fam, "s": round(float(s), 3), "t": round(float(t), 3),
+                  "q": primitives.shape(fam, s, t).tolist()} for s, t in st]
+        for c, p in zip(cands, predict_all([c["q"] for c in cands], obj)):
+            c["pred"] = p
+        seen += cands
+        top = sorted(cands, key=lambda c: _score(c["pred"]), reverse=True)[:max(2, int(elite * pop))]
+        arr = np.array([[c["s"], c["t"]] for c in top])
+        mu, sd = arr.mean(0), np.maximum(arr.std(0), 0.03)
+    return sorted(seen, key=lambda c: _score(c["pred"]), reverse=True)
+
+
+def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=(), search="rank", family_policy="brain"):
+    """choose -> sample -> predict -> rank. Returns (family, ranked candidates, brain_s, physics_s, log).
+    search="cem": the brain only picks the family, physics searches (s, t) densely (see cem).
+    family_policy="random": ablation - ignore the brain's family choice (is the model decorative?)."""
     brain_s = physics_s = 0.0
     log = []
     mem_text = memory.as_prompt(goal, obj) if (memory is not None and use_memory) else "No past attempts yet."
@@ -104,14 +131,22 @@ def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=()):
     c = brain.choose(goal, image, mem_text, obj_hint=obj)
     brain_s += brain.last_latency
     fam = c.get("family") if c.get("family") in primitives.FAMILIES else "power"
+    if family_policy == "random":
+        fam = str(rng.choice([f for f in primitives.FAMILIES if f not in avoid] or list(primitives.FAMILIES)))
+        c = {"why": "ablation: random family"}
     if fam in avoid:                                    # model ignored the hint: take the next untried family
         fam = next((f for f in primitives.FAMILIES if f not in avoid), fam)
     best = memory.best(obj) if (memory is not None and use_memory) else None
     center = (best["s"], best["t"]) if best and best["family"] == fam else None
-    cands = primitives.sample(fam, n, rng, center=center)
     log.append({"step": "choose", "family": fam, "why": c.get("why", ""), "latency": brain.last_latency})
 
     t0 = time.perf_counter()
+    if search == "cem":
+        ranked = cem(fam, obj, rng, center=center)
+        physics_s += time.perf_counter() - t0
+        log.append({"step": "cem", "evaluated": len(ranked), "best": {k: ranked[0][k] for k in ("s", "t")}})
+        return fam, ranked, brain_s, physics_s, log
+    cands = primitives.sample(fam, n, rng, center=center)
     for cand, pred in zip(cands, predict_all([c["q"] for c in cands], obj)):
         cand["pred"] = pred
     physics_s += time.perf_counter() - t0
@@ -127,7 +162,8 @@ def _plan(goal, obj, brain, memory, n, rng, use_memory, image, avoid=()):
 
 
 def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True, use_memory=True,
-            render=False, rng=None, veto=None, max_replans=2, holdout=False, world=None):
+            render=False, rng=None, veto=None, max_replans=2, holdout=False, world=None, search="rank",
+            family_policy="brain"):
     """One task. With verify=True the robot checks itself after every try and replans on failure
     (new family if the physics had no better idea); with verify=False it assumes success, like most robots.
     veto (default: on when n > 1): if physics predicts that even the best-ranked grasp drops, replan with another
@@ -137,14 +173,15 @@ def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True
     make_world = (lambda: world) if world is not None else (lambda: randomized_world(obj, seed, holdout))
     world = make_world()                     # sim by default; hand.hardware.HardwareWorld for the real hand
     image = world.render() if render else None
-    fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image)
+    fam, ranked, brain_s, physics_s, log = _plan(goal, obj, brain, memory, n, rng, use_memory, image, (), search, family_policy)
     failed_fams, k = set(), 0
     for _ in range(max_replans if veto else 0):
         if any(c["pred"]["held"] for c in ranked):
             break
         failed_fams.add(fam)
         log.append({"step": "veto", "family": fam, "why": "physics predicts every variant drops"})
-        fam, ranked, b, p, lg = _plan(goal, obj, brain, memory, n, rng, use_memory, image, failed_fams)
+        fam, ranked, b, p, lg = _plan(goal, obj, brain, memory, n, rng, use_memory, image, failed_fams, search,
+                                     family_policy)
         brain_s, physics_s = brain_s + b, physics_s + p
         log += lg
     ranked.sort(key=lambda c: not c["pred"]["held"])      # stable: keeps the brain's order among believed holds
@@ -154,7 +191,8 @@ def attempt(goal, obj, brain, memory=None, n=8, seed=0, max_tries=3, verify=True
         if k >= len(ranked) or (tries > 1 and not ranked[k]["pred"]["held"]):
             # nothing left that physics believes in: replan with a different family
             failed_fams.add(fam)
-            fam, ranked, b, p, lg = _plan(goal, obj, brain, memory, n, rng, use_memory, image, failed_fams)
+            fam, ranked, b, p, lg = _plan(goal, obj, brain, memory, n, rng, use_memory, image, failed_fams, search,
+                                     family_policy)
             brain_s, physics_s, k = brain_s + b, physics_s + p, 0
             log += lg
         chosen = ranked[k]

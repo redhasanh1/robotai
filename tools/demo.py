@@ -57,7 +57,7 @@ def main():
     frames = []
     slow = 3.0 if (a.watch or a.say) else 1.0
     objs = ["ball", "can", "block", "bar"]
-    rounds = 1000 if a.watch else 1
+    rounds = 1                                  # play each object once, then stop (no endless loop)
     todo = [(k, objs[k % 4]) for k in range(4 * rounds)]
     if a.say:
         plan = b.plan(a.say)
