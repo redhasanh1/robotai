@@ -61,6 +61,11 @@ PATH_SAMPLES = (0.12, 0.25, 0.37, 0.5, 0.62, 0.75, 0.87)    # where along a move
 CARRY_AT = {"right": (-0.16, -0.08, TABLE_Z + 0.12), "left": (0.16, -0.08, TABLE_Z + 0.12)}   # robot frame
 _CARRY = {}
 CLEARANCE = 0.005                              # m: the planner keeps the arm this far from things (the replay checks contact)
+FLAT_H = 0.035                                 # m: thinner than this and the hand can't get round it on a counter
+FIST_H = 0.035                                 # m: grasp point of a fist above what its knuckles rest on
+COUNTER_EDGE = -0.19                           # room-local y of the counter top's front edge
+PRESHAPE = 0.6                                 # half-curled hand while reaching in (grip 0 = flat open)
+SIGMAS = 2.0                                   # margin around a seen object = this many camera sigmas
 AUTO_CLEAR = True                              # move a blocking object aside before a grasp (tools/clutter.py ablates it)
 LOOK_H = 0.7                                   # counter camera height above the counter top
 
@@ -112,7 +117,7 @@ def scene_xml():
         tag = room.replace(" ", "_")
         out.append(f'<geom name="mess_{tag}" type="cylinder" size="{STAIN_R} 0.0015" pos="{s[0]:.3f} {s[1]:.3f} -1" '
                    f'rgba="0.3 0.18 0.05 1" contype="0" conaffinity="0"/>')
-        out.append(f'<camera name="look_{tag}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z + LOOK_H:.3f}" fovy="60"/>')
+        out.append(f'<camera name="look_{tag}" pos="{c[0]:.3f} {c[1]:.3f} {TABLE_Z + LOOK_H:.3f}" fovy="60" euler="0 0 {yaw:.4f}"/>')
     for name, (room, loc, half, rgba) in CONTAINERS.items():
         c = to_world(room, loc)
         yaw = ROOMS[room][2]                    # radians: the InMoov model compiles with angle="radian"
@@ -157,6 +162,10 @@ class HomeBody(motor.Body):
             self.where[o] = ("on", room)
         self.filled = {k: 0 for k in CONTAINERS}
         self.wiped = set()
+        self.grasp_dir = {}                   # object -> (approach, dz) it is held with
+        self.grip_at = {}                     # object -> where to grasp it, if not its centre (a slid-out overhang)
+        for s in ("right", "left"):
+            self.arm_q[s][reach.wrist_flex(s)] = 0.0
 
     # ---- geometry overrides
     def _pose(self):
@@ -172,7 +181,7 @@ class HomeBody(motor.Body):
         until it is clear. Grasping (grasp=obj): the counter can be cleared by raising, but another object in the
         way can't - the hand would miss what it's reaching for - so that is reported by name."""
         r = self._solve_clear(side, xyz, grasp)
-        q, dz = r["q"], r["dz"]
+        q, dz = (self._full(side, r["q"]) if r["q"] is not None else None), r["dz"]
         if r["status"] == "unreachable":
             self.problems.append(f"{why or 'move_hand'}: {side} hand cannot reach that from the {self.room} "
                                  f"({r['err'] * 100:.0f} cm short)")
@@ -184,7 +193,7 @@ class HomeBody(motor.Body):
             thing = r["hits"][0][1].replace("counter_", "").replace("cont_", "").replace("_", " ")
             self.problems.append(f"{why or 'move_hand'}: the {side} arm would hit the {thing}")
         self._detour(side, q, grasp, np.asarray(xyz) + (0, 0, dz))
-        need = max(abs(q[n] - self.arm_q[side][n]) for n in q) / motor.ARM_SPEED
+        need = max(abs(q[n] - self.arm_q[side].get(n, 0.0)) for n in q) / motor.ARM_SPEED
         self.arm_q[side] = q
         self.frames.append((max(seconds or 0.0, need, 0.3), self._pose(), event))
         return True
@@ -207,10 +216,10 @@ class HomeBody(motor.Body):
                 return {"status": "ok", "q": q, "dz": dz, "hits": [], "in_way": []}
         return {"status": "blocked", "q": q, "dz": dz, "hits": hits, "in_way": []}
 
-    def _path_hits(self, side, q0, q1, grasp=None):
+    def _path_hits(self, side, q0, q1, grasp=None, exact=()):
         """Hits partway along the joint-space path (playback interpolates joints; the ends alone can be clear)."""
         for a in PATH_SAMPLES:
-            hits = self._hits(side, {n: q0[n] + a * (q1[n] - q0[n]) for n in q1}, grasp)
+            hits = self._hits(side, {n: q0.get(n, 0.0) + a * (q1[n] - q0.get(n, 0.0)) for n in q1}, grasp, exact)
             if hits:
                 return hits
         return []
@@ -230,6 +239,7 @@ class HomeBody(motor.Body):
         vias = []
         for p in points:
             v, _ = reach.solve(self.m, p, side=side, base=self.base)
+            v = self._full(side, v) if v is not None else None
             if v is not None and not self._hits(side, v, grasp):
                 vias.append(v)
         routes = [[v] for v in vias] + [[a, b] for a in vias for b in vias if a is not b]
@@ -237,7 +247,7 @@ class HomeBody(motor.Body):
             legs = [self.arm_q[side]] + route + [q]
             if not any(self._path_hits(side, a, b, grasp) for a, b in zip(legs, legs[1:])):
                 for v in route:
-                    need = max(abs(v[n] - self.arm_q[side][n]) for n in v) / motor.ARM_SPEED
+                    need = max(abs(v[n] - self.arm_q[side].get(n, 0.0)) for n in v) / motor.ARM_SPEED
                     self.arm_q[side] = v
                     self.frames.append((max(need, 0.3), self._pose(), None))
                 return
@@ -258,17 +268,17 @@ class HomeBody(motor.Body):
     def _to_rest(self, seconds):
         """Both arms to the carry pose (a detour first if the straight way would go through something)."""
         for s in ("right", "left"):
-            q = self._carry_q(s)
-            if any(abs(q[n] - self.arm_q[s][n]) > 1e-6 for n in q):
+            q = self._full(s, self._carry_q(s))
+            if any(abs(q[n] - self.arm_q[s].get(n, 0.0)) > 1e-6 for n in q):
                 self._detour(s, q)
                 self.arm_q[s] = q
         self.frames.append((seconds, self._pose(), None))
 
-    def _hits(self, side, q, grasp=None):
+    def _hits(self, side, q, grasp=None, exact=()):
         """What this arm would be inside, at pose q, with the objects where the robot believes they are."""
         from . import collide
         arm_q = dict(self.arm_q)
-        arm_q[side] = q
+        arm_q[side] = self._full(side, q)          # a palm-only pose has the wrist straight
         saved, self.arm_q = self.arm_q, arm_q
         try:
             pose = self._pose()
@@ -276,8 +286,11 @@ class HomeBody(motor.Body):
             self.arm_q = saved
         objs = {o: None if self.where[o][0] in ("held", "given") else self.pos[o] for o in OBJECTS}
         ignore = {mocap_name(o) for o in ({grasp} | getattr(self, "handling", set())) if o in OBJECTS}
-        return [h for h in collide.pose_hits(self.m, pose, objs, ignore, tol=0.0, clearance=CLEARANCE)
-                if h[0].lower().startswith(side)]
+        # an object the robot has only SEEN gets a margin of SIGMAS x how unsure the camera is about where it is
+        margins = {mocap_name(o): SIGMAS * s for o, s in getattr(self, "pos_sigma", {}).items()
+                   if self.where[o][0] not in ("held", "given")}
+        return [h for h in collide.pose_hits(self.m, pose, objs, ignore, tol=0.0, clearance=CLEARANCE,
+                                             obj_margin=margins, exact=exact) if h[0].lower().startswith(side)]
 
     def _local_xyz(self, local, z):
         xy = to_world(self.base, local)
@@ -345,9 +358,10 @@ class HomeBody(motor.Body):
             self.put_on(self.held[side], self.room)
         p, h = self.pos[o], OBJECTS[o][5]
         top = p[2] + h
-        if AUTO_CLEAR and not getattr(self, "_clearing", False):
+        g = self._plan_grasp(o, side)
+        if g is None and AUTO_CLEAR and not getattr(self, "_clearing", False):
             # something else where the hand has to go: move it aside first, then take what we came for
-            for b in self._blockers(o, side, (p[0], p[1], top + 0.04)):
+            for b in self._grasp_blockers(o, side):
                 self.said.append(f"moving the {b} out of the way")
                 self._clearing = True
                 try:
@@ -356,14 +370,195 @@ class HomeBody(motor.Body):
                     self._clearing = False
                 if self.held[side]:
                     side = "left" if side == "right" else "right"
-        if not self.move(side, (p[0], p[1], top + 0.12), why=f"pick {o}", grasp=o):
-            return
-        self.move(side, (p[0], p[1], top + 0.04), 0.6, grasp=o)
+            g = self._plan_grasp(o, side)
+        for shift in (0.0, 0.10, -0.10, 0.18, -0.18):        # too close to the middle: step sideways, like a person
+            if g is not None:
+                break
+            if shift:
+                self._shift(shift)
+                g = self._plan_grasp(o, side)
+            if g is None and self._flat(o) and self.where[o][0] == "on":
+                # this hand can't pinch (thumb and index stay 4 cm apart), so a flat thing is slid to the counter's
+                # edge and taken by the half that sticks out - how people pick up a card or a coin
+                if self._slide_to_edge(o, side):
+                    g = self._plan_grasp(o, side)
+        if g is None:
+            return self.problems.append(f"pick {o}: no clean way to get a hand round it")
+        pre, q, an, dz = g
+        p = self.grip_at.get(o, p)
+        self.set_grip(side, PRESHAPE, None, 0.3)               # pre-shape: straight open fingers hit the counter
+        self._go_q(side, pre, why=f"pick {o}", grasp=o)
+        self._go_q(side, q, 0.6, grasp=o)
         if self.where[o][0] == "in":
             self.filled[self.where[o][1]] -= 1
         self.held[side], self.where[o] = o, ("held", side)
         self.set_grip(side, 0.8, ("attach", side, mocap_name(o)[4:]))
-        self.move(side, (p[0], p[1], top + 0.14), 0.6)
+        self.grasp_dir[o] = (an, dz)                           # how it is held: placing it uses the same grasp
+        lift = self._gsolve(side, p + (0, 0, dz + 0.10), an, loose=True)
+        if lift is not None:
+            self._go_q(side, lift, 0.6)
+
+    # ---- grasping with the fingers, not the palm (Kimi round 12)
+    def _gsolve(self, side, target, approach, loose=False):
+        """Joint angles that put the GRASP POINT (where the closed fingers meet) on target, hand along approach.
+        Cached per task: the same grasp gets re-planned after an obstacle is moved or the base steps aside."""
+        key = (side, tuple(np.round(target, 3)), tuple(np.round(approach, 3)), tuple(np.round(self.base, 3)), loose)
+        cache = self.__dict__.setdefault("_gcache", {})
+        if key not in cache:
+            cache[key], _, _ = reach.solve_grasp(self.m, target, approach, side=side, base=self.base,
+                                                 closed=self._fingers(side, 0.8),
+                                                 accept=(0.03, 0.5) if loose else (0.012, 0.35))  # waypoints: rough
+        q = cache[key]
+        return dict(q) if q is not None else None
+
+    def _approaches(self, side, p):
+        """Ways in, most natural first: from the shoulder towards the object, tipped 40-60 deg down, or turned 30 deg."""
+        sh = to_world(self.base, (0.2 if side == "left" else -0.2, 0.0))
+        f = np.asarray(p[:2]) - sh
+        f = f / (np.linalg.norm(f) + 1e-9)
+        out = []
+        for tilt in (-0.3, 0.0, -0.6, -1.0):                  # level-ish first: the hand wraps round from the side
+            for yaw in (0.0, 0.5, -0.5, 1.0, -1.0):
+                c, s = np.cos(yaw), np.sin(yaw)
+                a = np.array([c * f[0] - s * f[1], s * f[0] + c * f[1], tilt])
+                out.append(a / np.linalg.norm(a))
+        return out
+
+    def _grasp_poses(self, o, side):
+        """(pre-grasp, grasp, approach, dz) candidates that the arm can reach, in order - collision not checked."""
+        p = self.grip_at.get(o, self.pos[o])            # a slid-out flat thing is taken by its overhang
+        for dz in (0.0, 0.01):
+            for an in self._approaches(side, p):
+                q = self._gsolve(side, p + (0, 0, dz), an)
+                if q is None:
+                    continue
+                pre = self._gsolve(side, p + (0, 0, dz + 0.03) - an * 0.08, an, loose=True)
+                if pre is not None:
+                    yield pre, q, an, dz
+
+    def _flat(self, o):
+        return 2 * OBJECTS[o][5] < FLAT_H
+
+    def _extent(self, o, room):
+        """Half size of o along the counter's depth (objects are world-aligned, counters are turned per room)."""
+        typ, size = OBJECTS[o][2], [float(v) for v in OBJECTS[o][3].split()]
+        if typ in ("sphere", "cylinder"):
+            return size[0]
+        yaw = ROOMS[room][2]
+        dy = np.array([-np.sin(yaw), np.cos(yaw)])          # the room's local y (towards the robot) in world
+        return abs(dy[0]) * size[0] + abs(dy[1]) * size[1]
+
+    def _slide_to_edge(self, o, side):
+        """Knuckles on top of o, slide it towards the robot until half of it sticks out over the counter's front
+        edge; afterwards pick() takes it by that half, where there is air underneath. Checked like every move."""
+        room = self._room_of(o)
+        frame = ROOMS[room]
+        p = self.pos[o]
+        loc = to_local(frame, p[:2])
+        ext = self._extent(o, room)
+        edge = COUNTER_EDGE
+        if loc[1] + ext >= edge + 0.8 * ext:                 # already sticking out enough
+            new_loc = loc
+        else:
+            new_loc = np.array([loc[0], edge])                # centre on the edge: half on, half over the air
+        new = np.array([*to_world(frame, new_loc), p[2]])
+        fist = self._fingers(side, 1.0)
+        surf = {self._surface(o)}
+
+        def solve(xyz, an, loose=False):
+            q, _, _ = reach.solve_grasp(self.m, xyz, an, side=side, base=self.base, closed=fist,
+                                        accept=(0.03, 0.6) if loose else (0.015, 0.5))
+            return q
+        plan = None
+        closed, self.grip[side] = self.grip[side], 1.0     # checked as a fist
+        try:
+            for fh in (0.03, 0.045, 0.06):                 # the arm can't point a fist straight down: come in like a grasp
+                top = OBJECTS[o][5] + fh
+                for down in self._approaches(side, p):
+                    on = solve(p + (0, 0, top), down)
+                    drag = solve(new + (0, 0, top), down) if on is not None else None
+                    above = solve(p + (0, 0, top + 0.08), down, True) if drag is not None else None
+                    if above is None:
+                        continue
+                    if not (self._hits(side, on, o, surf) or self._hits(side, drag, o, surf) or
+                            self._path_hits(side, above, on, o, surf) or self._path_hits(side, on, drag, o, surf)):
+                        plan = (on, drag, above, top, down)
+                        break
+                if plan:
+                    break
+        finally:
+            self.grip[side] = closed
+        if plan is None:
+            return False
+        on, drag, above, top, down = plan
+        self.set_grip(side, 1.0, None, 0.3)                   # a fist: short, hard knuckles
+        self._go_q(side, above, why=f"slide {o}", grasp=o)
+        self._go_q(side, on, 0.5, grasp=o)
+        self._go_q(side, drag, 0.8, ("slide", mocap_name(o)[4:], tuple(new)), grasp=o)
+        self.pos[o] = new
+        overhang = to_world(frame, (new_loc[0], edge + ext / 2))
+        self.grip_at[o] = np.array([overhang[0], overhang[1], p[2]])
+        self._go_q(side, solve(new + (0, 0, top + 0.08), down, True) or above, 0.4)
+        self.set_grip(side, 0.0, None, 0.3)
+        return True
+
+    def _grasp_clear(self, o, side, pre, q):
+        """Hits for a grasp: open hand coming in (pre-grasp, the way in, at the object) and the hand closed on it.
+        The surface the object stands on may be approached closely - a hand picking up a plate is near the table -
+        but never entered (no safety margin there, only real contact counts)."""
+        ex = {self._surface(o)}
+        opened, self.grip[side] = self.grip[side], PRESHAPE        # the hand comes in half-curled, not flat open
+        try:
+            hits = self._hits(side, pre, o) + self._hits(side, q, o, ex) + self._path_hits(side, pre, q, o, ex)
+        finally:
+            self.grip[side] = opened
+        open_, self.grip[side] = self.grip[side], 0.8
+        try:
+            hits += self._hits(side, q, o, ex)
+        finally:
+            self.grip[side] = open_
+        return hits
+
+    def _surface(self, o, where=None):
+        """The body o stands on: a counter, or a container it is in."""
+        w = where or self.where[o]
+        return "cont_" + w[1] if w[0] == "in" else "counter_" + str(self._room_of(o) or self.room).replace(" ", "_")
+
+    def _plan_grasp(self, o, side):
+        for pre, q, an, dz in self._grasp_poses(o, side):
+            if not self._grasp_clear(o, side, pre, q):
+                return pre, q, an, dz
+        return None
+
+    def _grasp_blockers(self, o, side):
+        """Other objects in the way of the most natural reachable grasp."""
+        for pre, q, an, dz in self._grasp_poses(o, side):
+            hits = self._grasp_clear(o, side, pre, q)
+            return list(dict.fromkeys(h[1][4:].replace("_", " ") for h in hits
+                                      if h[1].startswith("obj_") and h[1][4:].replace("_", " ") in OBJECTS))
+        return []
+
+    def _shift(self, dx):
+        """Roll the base to dx metres along the counter from its parked spot (arms tucked first). Absolute, not
+        relative: the old relative steps +10, -10, +18, -18 cm visited +10, 0, +18, 0 and never the other side."""
+        if self.room not in ROOMS or self.room == "you":
+            return
+        self._to_rest(0.4)
+        xy = to_world(ROOMS[self.room], (dx, 0.0))
+        moved = float(np.hypot(xy[0] - self.base[0], xy[1] - self.base[1]))
+        self.base = (float(xy[0]), float(xy[1]), self.base[2])
+        self.frames.append((max(moved / DRIVE_V, 0.3), self._pose(), None))
+
+    def _full(self, side, q):
+        """Every arm pose names the wrist bend too (palm-only solves leave it straight)."""
+        return {reach.wrist_flex(side): 0.0, **q}
+
+    def _go_q(self, side, q, seconds=None, event=None, grasp=None, why=""):
+        q = self._full(side, q)
+        self._detour(side, q, grasp)
+        need = max(abs(q[n] - self.arm_q[side].get(n, 0.0)) for n in q) / motor.ARM_SPEED
+        self.arm_q[side] = q
+        self.frames.append((max(seconds or 0.0, need, 0.3), self._pose(), event))
 
     def _blockers(self, o, side, xyz):
         """Other objects the hand would go through coming down onto o at xyz - above it, the way down, the grip
@@ -392,16 +587,38 @@ class HomeBody(motor.Body):
             side = next((s for s, v in self.held.items() if v == o), None)
         return side
 
+    def _place_poses(self, o, xyz, side):
+        """(above, place, approach, dz) that set o down with its centre at xyz + its half height, held the way it was
+        picked up (the grasp point carries the object - it lands ON the surface instead of dropping from the air)."""
+        c = np.array([xyz[0], xyz[1], xyz[2] + OBJECTS[o][5]])
+        held = self.grasp_dir.get(o)
+        tries = ([held] if held else []) + [(a, 0.0) for a in self._approaches(side, c)]
+        for an, dz in tries:
+            q = self._gsolve(side, c + (0, 0, dz + 0.004), an)
+            above = self._gsolve(side, c + (0, 0, dz + 0.10), an, loose=True) if q is not None else None
+            if above is not None:
+                yield above, q, an, dz
+
     def _drop_at(self, o, xyz, where, side):
         h = OBJECTS[o][5]
         x, y, z = xyz
-        if not self.move(side, (x, y, z + h + 0.14), why=f"put {o}"):
+        plan = next((pl for pl in self._place_poses(o, xyz, side)
+                     if not (self._hits(side, pl[0], o) or self._hits(side, pl[1], o, {self._surface(o, where)})
+                             or self._path_hits(side, pl[0], pl[1], o, {self._surface(o, where)}))), None)
+        if plan is None:
+            plan = next(self._place_poses(o, xyz, side), None)
+        if plan is None:
+            self.problems.append(f"put {o}: the {side} hand can't set it down there")
             return False
-        self.move(side, (x, y, z + h + 0.04), 0.6)
+        above, q, an, dz = plan
+        self._go_q(side, above, why=f"put {o}")
+        self._go_q(side, q, 0.6)
         self.pos[o] = np.array([x, y, z + h])
         self.held[side], self.where[o] = None, where
+        self.grasp_dir.pop(o, None)
         self.set_grip(side, 0.0, ("detach", mocap_name(o)[4:], (x, y, z + h)))
-        self.move(side, (x, y, z + h + 0.16), 0.5)
+        back = self._gsolve(side, np.array([x, y, z + h + dz + 0.05]) - an * 0.08, an, loose=True)
+        self._go_q(side, back if back is not None else above, 0.5)
         return True
 
     def set_grip(self, side, amount, event=None, seconds=0.5):
@@ -415,12 +632,13 @@ class HomeBody(motor.Body):
                 here = self._hand_xyz(side)
                 for dz in RAISES[1:]:
                     q2, _ = reach.solve(self.m, here + (0, 0, dz), side=side, base=self.base)
+                    q2 = self._full(side, {**self.arm_q[side], **q2}) if q2 is not None else None
                     if q2 is not None and not self._hits(side, q2):
                         q = q2
                         break
             self.grip[side] = closed
             if q is not None:
-                need = max(abs(q[n] - self.arm_q[side][n]) for n in q) / motor.ARM_SPEED
+                need = max(abs(q[n] - self.arm_q[side].get(n, 0.0)) for n in q) / motor.ARM_SPEED
                 self.arm_q[side] = q
                 self.frames.append((max(need, 0.3), self._pose(), None))
             elif blocked:
@@ -428,17 +646,14 @@ class HomeBody(motor.Body):
                                      f"{blocked[0][1].replace('counter_', '').replace('cont_', '').replace('_', ' ')}")
         super().set_grip(side, amount, event, seconds)
 
-    def _drop_clear(self, o, xyz, side):
+    def _drop_clear(self, o, xyz, side, into=None, surf=None):
         """Would dropping o at xyz (down from above, release, back up) keep this hand clear of everything already
         there? Checked on the body before choosing the spot - nothing is committed."""
-        h = OBJECTS[o][5]
-        qs = []
-        for dz in (0.14, 0.04, 0.16):
-            q, _ = reach.solve(self.m, (xyz[0], xyz[1], xyz[2] + h + dz), side=side, base=self.base)
-            if q is None or self._hits(side, q):
-                return False
-            qs.append(q)
-        return not any(self._path_hits(side, a, b) for a, b in zip(qs, qs[1:]))
+        surf = surf or ({"cont_" + into} if into else set())
+        for above, q, an, dz in self._place_poses(o, xyz, side):
+            if not (self._hits(side, above, o) or self._hits(side, q, o, surf) or self._path_hits(side, above, q, o, surf)):
+                return True
+        return False
 
     def put_in(self, o, into):
         if into not in CONTAINERS:
@@ -462,7 +677,7 @@ class HomeBody(motor.Body):
             cand = to_world(room, (loc[0] + dx, loc[1] + dy))
             want = self._side_for((cand[0], cand[1], z))
             use = want if (want == side or self.held[want] is None) else side
-            if self._drop_clear(o, (cand[0], cand[1], z), use):
+            if self._drop_clear(o, (cand[0], cand[1], z), use, into):
                 xy = cand
                 break
         want = self._side_for((xy[0], xy[1], z))
@@ -484,12 +699,22 @@ class HomeBody(motor.Body):
         side = next((s for s, v in self.held.items() if v == o), side)
         spots = FREE_SPOTS if away_from is None else \
             sorted(FREE_SPOTS, key=lambda s: -np.linalg.norm(to_world(room, s) - np.asarray(away_from)[:2]))
+        free = []
         for loc in spots:
             xy = to_world(room, loc)
             clear_objs = all(np.linalg.norm(self.pos[k][:2] - xy) > 0.07 for k in self.pos if k != o and
                              self.where[k][0] != "held")
             clear_boxes = all(np.linalg.norm(to_world(r, c) - xy) > 0.13 for r, c, *_ in CONTAINERS.values() if r == room)
             if clear_objs and clear_boxes:
+                free.append(xy)
+        # the first free spot the hand can really set it down on (it used to take the first free spot, then find the
+        # hand couldn't place there)
+        xy = free[0] if free else to_world(room, spots[0])
+        for cand in free:
+            want = self._side_for((cand[0], cand[1], TABLE_Z))
+            use = want if (want == side or self.held[want] is None) else side
+            if self._drop_clear(o, (cand[0], cand[1], TABLE_Z), use, surf={"counter_" + room.replace(" ", "_")}):
+                xy = cand
                 break
         want = self._side_for((xy[0], xy[1], TABLE_Z))
         if want != side and self.held[want] is None:
@@ -571,7 +796,7 @@ class HomeBody(motor.Body):
         v = ((catch[0] - release[0]) / tf, (catch[1] - release[1]) / tf, vz)
         self.held[side] = None
         q, _ = reach.solve(self.m, catch - [0, 0, 0.02], side=to, base=self.base)
-        need = max(abs(q[n] - self.arm_q[to][n]) for n in q) / motor.ARM_SPEED if q else 1e9
+        need = max(abs(q[n] - self.arm_q[to].get(n, 0.0)) for n in q) / motor.ARM_SPEED if q else 1e9
         caught = q is not None and (need <= tf or to == side)
         if q:
             self.arm_q[to] = q

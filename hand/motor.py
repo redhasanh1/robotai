@@ -105,7 +105,7 @@ class Body:
             self.problems.append(f"{why or 'move_hand'}: {side} hand cannot reach ({xyz[0]:.2f}, {xyz[1]:.2f}, "
                                  f"{xyz[2]:.2f}) - {err * 100:.0f} cm short")
             return False
-        need = max(abs(q[n] - self.arm_q[side][n]) for n in q) / ARM_SPEED
+        need = max(abs(q[n] - self.arm_q[side].get(n, 0.0)) for n in q) / ARM_SPEED
         self.arm_q[side] = q
         self.frames.append((max(seconds or 0.0, need, 0.3), self._pose(), event))
         return True
@@ -219,7 +219,7 @@ class Body:
             self.frames.append((t_flight, self._pose(), ("fly", o, tuple(release), tuple(v), t_flight, None)))
             self.pos[o] = np.array([catch[0], catch[1], TABLE_Z + OBJ[o][3]])
             return
-        need = max(abs(q_catch[n] - self.arm_q[to][n]) for n in q_catch) / ARM_SPEED
+        need = max(abs(q_catch[n] - self.arm_q[to].get(n, 0.0)) for n in q_catch) / ARM_SPEED
         caught = need <= t_flight or to == frm
         self.arm_q[to] = q_catch
         self.grip[to] = 0.0

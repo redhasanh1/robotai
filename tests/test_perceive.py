@@ -21,7 +21,8 @@ def test_moving_objects_is_not_a_mess():
     for o in ("cup", "remote", "towel"):
         b = M.body_mocapid[mujoco.mj_name2id(M, mujoco.mjtObj.mjOBJ_BODY, home.mocap_name(o))]
         p = eyes.d.mocap_pos[b].copy()
-        eyes.d.mocap_pos[b][0] += 0.1
+        room = home.OBJECTS[o][0]                      # slide it 10 cm along its counter (not off the edge)
+        eyes.d.mocap_pos[b][:2] += home.to_world(room, (0.1, 0)) - home.to_world(room, (0, 0))
         assert eyes.survey() == {}, o
         eyes.d.mocap_pos[b] = p
 

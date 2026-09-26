@@ -58,17 +58,20 @@ def _masks(m):
 class _Contacts:
     """with _Contacts(m): robot-vs-house contacts on; the model's own (all off) masks come back afterwards."""
 
-    def __init__(self, m, clearance=0.0):
-        self.m, self.clearance = m, clearance
+    def __init__(self, m, clearance=0.0, obj_margin=None):
+        self.m, self.clearance, self.obj_margin = m, clearance, obj_margin or {}
 
     def __enter__(self):
         robot, masks, d = _masks(self.m)
         self.saved = {f: getattr(self.m, f).copy() for f in _FIELDS + ("geom_margin",)}
         for f, v in masks.items():
             getattr(self.m, f)[:] = v
-        if self.clearance:                  # fixed house geoms report anything closer than this, not only overlaps
+        if self.clearance or self.obj_margin:
             for g in np.nonzero(masks["geom_conaffinity"] > 0)[0]:
-                if not self.m.body(self.m.geom_bodyid[g]).name.startswith("obj_"):   # objects sit close on purpose
+                name = self.m.body(self.m.geom_bodyid[g]).name
+                if name.startswith("obj_"):      # objects: only as much margin as the robot is unsure where they are
+                    self.m.geom_margin[g] = self.obj_margin.get(name, 0.0)
+                else:                            # fixed house geoms report anything closer than the clearance
                     self.m.geom_margin[g] = self.clearance
         return robot, d
 
@@ -77,12 +80,13 @@ class _Contacts:
             getattr(self.m, f)[:] = self.saved[f]
 
 
-def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002, clearance=0.0):
+def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002, clearance=0.0, obj_margin=None, exact=()):
     """One pose: {joint: value} + where the objects are ({name: xyz, or None if held/away}) ->
     [(robot body, house body, depth m)] for everything the robot is inside by more than tol - or, with a clearance,
     everything it comes closer to than that (planning with a safety margin: the house is treated as that much bigger,
     so what happens between the checked points can't turn into contact)."""
-    with _Contacts(m, clearance) as (robot, d):
+    obj_margin = obj_margin or {}
+    with _Contacts(m, clearance, obj_margin) as (robot, d):
         for n, v in joints.items():
             j = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_JOINT, n)
             if j >= 0:
@@ -98,7 +102,7 @@ def pose_hits(m, joints, obj_pos, ignore=(), tol=0.002, clearance=0.0):
             b1, b2 = m.geom_bodyid[c.geom1], m.geom_bodyid[c.geom2]
             rb, hb = (b1, b2) if b1 in robot else (b2, b1)
             name = m.body(hb).name or "wall"
-            margin = clearance if not name.startswith("obj_") else 0.0
+            margin = 0.0 if name in exact else (clearance if not name.startswith("obj_") else obj_margin.get(name, 0.0))
             if rb in robot and hb not in robot and c.dist < margin - tol and name not in ignore:
                 out.append((m.body(rb).name, name, round(-c.dist, 3)))
         return out
@@ -111,7 +115,8 @@ def sweep(m, body, stride=2, tol=0.002):
 
 def _replay(m, body, robot, stride, tol):
     d = mujoco.MjData(m)
-    for o, p in getattr(body, "pos0", {}).items():             # start from where the objects really were
+    # start from where the objects REALLY were: true_pos0 when the plan was made from what the cameras saw
+    for o, p in (getattr(body, "true_pos0", None) or getattr(body, "pos0", {})).items():
         bid = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_BODY, "obj_" + o.replace(" ", "_"))
         if bid >= 0:
             d.mocap_pos[m.body_mocapid[bid]] = p
