@@ -42,6 +42,9 @@ console, servo test, watch the sim hand, tests, benchmark.
 .venv\Scripts\python tools\bench.py --quick     # the capstone numbers
 ```
 
+Real InMoov look in the full-robot sim (one time, ~1 min, 290 parts, kept in `logs\`, not in git because of the
+GPL license): `.venv\Scripts\python tools\fetch_inmoov_meshes.py`. Without it the full robot shows as a skeleton.
+
 ## 4. When the ESP32 arrives
 
 1. Plug it in with a **data** USB cable. A new COM port should appear in Device Manager.

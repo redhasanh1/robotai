@@ -22,3 +22,15 @@ def test_slip_check_flags_drops_fast():
     assert not drop["held"] and drop["slip_t"] is not None and drop["slip_t"] < 0.3
     hold = SimHand("can").grasp_test([0.9, 0.9, 0.9, 0.9, 0.9, 0])
     assert hold["held"] and hold["slip_t"] is None
+
+
+def test_full_inmoov_skeleton_builds_and_moves():
+    import mujoco
+    from hand.inmoov_sim import build_model
+    m = build_model(meshes=False)                      # no downloaded meshes needed
+    assert m.njnt == 57 and m.nu == 56
+    d = mujoco.MjData(m)
+    d.ctrl[m.actuator("right_elbow_x").id] = 1.0
+    for _ in range(1500):
+        mujoco.mj_step(m, d)
+    assert abs(d.joint("right_elbow_x").qpos[0] - 1.0) < 0.1

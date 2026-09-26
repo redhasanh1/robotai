@@ -56,6 +56,17 @@ Brain speed per decision:
 
 Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
 
+## See it and use it
+
+Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
+
+- **Tell the robot**: type "pick up the orange" → it plans, thinks, and the sim hand does it on screen.
+  "clean the dishes" → it plans the steps and tells you which skills still have to be built.
+- **Sim hand**: grabs the ball, can, block and bar once each, in slow motion.
+- **Full robot**: the whole InMoov upper body (57 joints, from the same model as the website). The arm reaches, the
+  wrist turns and the hand closes, or open it with sliders and move every joint yourself.
+- **STOP ALL**: kills every robot program that's running. To interrupt Claude, press Esc in the terminal.
+
 ## What runs where
 
 | Part | Runs on | Speed |
