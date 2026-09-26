@@ -15,7 +15,7 @@ import tkinter as tk
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY = os.path.join(ROOT, ".venv", "Scripts", "python.exe")
 TOOLS = ("demo.py", "bench.py", "brain_live.py", "local_vlm_server.py", "estimator_eval.py",
-         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py", "robot_do.py", "listen.py")
+         "servo_characterize.py", "run_hand.py", "ablation.py", "link_jitter.py", "arm_view.py", "robot_do.py", "listen.py", "house.py")
 PS_LIST = ("Get-CimInstance Win32_Process -Filter \"Name='python.exe' OR Name='pythonw.exe'\" | "
            "Select-Object ProcessId, CommandLine | ConvertTo-Json -Compress")
 
@@ -48,8 +48,8 @@ class Panel:
         self.w.geometry("440x640+40+40")
         self.w.attributes("-topmost", True)
         tk.Label(self.w, text="PINN Humanoid", font=("Segoe UI", 14, "bold")).pack(pady=(10, 4))
-        tk.Label(self.w, text="Tell the robot (put the ball on the left, stack the block on the can,\n"
-                              "give me the bar, tidy the table, point at the can, wave, box, clap...):",
+        tk.Label(self.w, text="Tell the robot (do the dishes, do the laundry, bring me the remote,\n"
+                              "I'm hungry, wipe the kitchen counter, juggle the ball, wave...):",
                  anchor="w", justify="left").pack(fill="x", padx=16)
         row = tk.Frame(self.w)
         row.pack(fill="x", padx=16, pady=(0, 6))
@@ -58,7 +58,7 @@ class Panel:
         self.cmd.bind("<Return>", lambda _e: self.say())
         tk.Button(row, text="Do it", command=self.say).pack(side="left", padx=(6, 0))
         tk.Button(self.w, text="🎲  Random task", font=("Segoe UI", 11),
-                  command=lambda: self._run(["robot_do.py", "--random"], "picking a task...\n")).pack(
+                  command=lambda: self._run(["house.py", "--random"], "picking one of the 50 test prompts...\n")).pack(
             fill="x", padx=16, pady=(0, 3))
         tk.Button(self.w, text="🧠  Start AI brain (local model, ~1 min to load; then it thinks up new tasks)",
                   font=("Segoe UI", 10), command=self.start_brain).pack(fill="x", padx=16, pady=(0, 6))
@@ -66,8 +66,9 @@ class Panel:
         self.out.pack(fill="x", padx=16)
         tk.Button(self.w, text="▶  Sim hand: grab 4 objects (plays once)", font=("Segoe UI", 11),
                   command=self.watch).pack(fill="x", padx=16, pady=(8, 3))
-        tk.Button(self.w, text="▶  Full robot: arm reaches, hand closes", font=("Segoe UI", 11),
-                  command=lambda: self.launch("arm_view.py", "--demo")).pack(fill="x", padx=16, pady=3)
+        tk.Button(self.w, text="▶  House tour: dishes, laundry, bring the remote, wipe, wave", font=("Segoe UI", 11),
+                  command=lambda: self._run(["house.py", "--showcase"], "starting the house tour...\n")).pack(
+            fill="x", padx=16, pady=3)
         tk.Button(self.w, text="▶  Full robot with sliders (move every joint)", font=("Segoe UI", 11),
                   command=lambda: self.launch("arm_view.py")).pack(fill="x", padx=16, pady=3)
         tk.Button(self.w, text="■  STOP ALL", font=("Segoe UI", 16, "bold"), bg="#d33", fg="white",
@@ -111,7 +112,7 @@ class Panel:
     def say(self):
         text = self.cmd.get().strip()
         if text:
-            self._run(["robot_do.py", text], "thinking...\n")
+            self._run(["house.py", text], "thinking...\n")
 
     def _run(self, args, first_line):
         self.out.delete("1.0", "end")
