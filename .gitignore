@@ -3,3 +3,7 @@ __pycache__/
 *.pyc
 .env
 .railway/
+.venv/
+logs/
+.pytest_cache/
+firmware/**/build/

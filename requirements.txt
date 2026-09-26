@@ -1,0 +1,9 @@
+# Hand software (Python 3.12). Setup:
+#   python -m pip install uv && python -m uv venv --python 3.12 .venv
+#   python -m uv pip install --python .venv/Scripts/python.exe -r requirements.txt
+#   python -m uv pip install --python .venv/Scripts/python.exe torch --index-url https://download.pytorch.org/whl/cu126
+mujoco>=3.3
+numpy
+pyserial
+opencv-contrib-python
+pytest
