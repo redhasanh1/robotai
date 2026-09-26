@@ -35,3 +35,29 @@ def test_mess_is_seen_and_wiped():
     b.run([{"do": "wipe", "room": "living room"}])
     assert "living room" in b.wiped and not b.messes, b.problems
     assert "nothing dirty in view" in home.describe_world(b)
+
+
+def test_errors_name_the_real_step():
+    b = home.HomeBody(M).run([{"do": "go", "to": "kitchen"}, {"do": "pick", "obj": "unicorn"}])
+    assert b.problems and b.problems[0].startswith("step 2:"), b.problems
+
+
+def test_splice_repair_offers_only_steps_that_work():
+    mess = {"living room": "a sticky puddle and some crumbs"}
+    prog = [{"do": "go", "to": "living room"}, {"do": "pick", "obj": "crumbs"},
+            {"do": "put_on", "obj": "crumbs", "room": "kitchen"}]
+    opts = H.step_options(prog, 1, M, mess)
+    assert {"do": "wipe", "room": "living room"} in opts and {"do": "remove"} in opts
+    for o in opts:                      # every offered step runs clean where it stands
+        assert not home.HomeBody(M, mess).run(prog[:1] + ([] if o["do"] == "remove" else [o])).problems
+
+    class Picker:                       # stands in for the model: always takes the wipe when it's offered
+        def program(self, *a, **k):
+            return {"program": prog}
+
+        def choose_step(self, command, p, k, error, options):
+            return next((i for i, o in enumerate(options) if o["do"] == "wipe"), 0)
+
+    fixed, _ = H.think("I spilled something in the living room", M, Picker(), say=lambda s: None, messes=mess)
+    body = home.HomeBody(M, mess).run(fixed)
+    assert not body.problems and "living room" in body.wiped and not body.messes
