@@ -221,7 +221,25 @@ PROMPTS = [
 assert len(PROMPTS) == 50
 
 
-def actions_doc():
+HIGH_LEVEL = ("go", "pick", "put_in", "put_on", "give", "wipe", "pass", "toss", "point", "look", "wave", "box",
+              "clap", "nod", "shake", "say", "wait")
+
+
+def actions_doc(high_level=True):
+    """The action list the AI plans with. high_level (default): skills only - a small model given raw move_hand
+    coordinates invented targets 1-2 m away that it could not repair (house test, round 8)."""
+    if high_level:
+        return """Actions (JSON), one object per step:
+  {"do": "go", "to": "kitchen|laundry|living room|you"}
+  {"do": "pick", "obj": "<object>"}                         drives there first if needed
+  {"do": "put_in", "obj": "<object>", "into": "sink|rack|washer|basket"}
+  {"do": "put_on", "obj": "<object>", "room": "kitchen|laundry|living room"}
+  {"do": "give", "obj": "<object>"}                         bring it to the person
+  {"do": "wipe", "room": "kitchen|laundry|living room"}    cleans that counter/table with the sponge
+  {"do": "toss", "obj": "<object>", "to": "left|right", "height": 0.3}
+  {"do": "point", "obj": "<object>"}  {"do": "look", "obj": "<object>"}  {"do": "wave"}  {"do": "say", "text": "..."}
+Use only these actions and only the objects, containers and rooms listed. Think about the GOAL first (where should
+each object end up?) and then write the fewest steps that get there."""
     from . import motor
     return (home.__doc__[home.__doc__.index("body = HomeBody"):home.__doc__.index("The robot faces")] +
             motor.__doc__[motor.__doc__.index("Actions"):])
@@ -268,7 +286,10 @@ def think(command, m, brain, rounds=2, say=print, use_examples=True, hints=False
     reply = brain.program(command, world, doc)
     prog = reply.get("program") or []
     for r in range(rounds + 1):
-        problems = home.HomeBody(m).run(prog).problems if prog else ["the program was empty"]
+        low = [f"step {i + 1}: '{a.get('do')}' is not allowed - use only: {', '.join(HIGH_LEVEL)}"
+               for i, a in enumerate(prog) if isinstance(a, dict) and a.get("do") not in HIGH_LEVEL]
+        prog = [a for a in prog if isinstance(a, dict) and a.get("do") in HIGH_LEVEL]      # drop, and say so
+        problems = low + (home.HomeBody(m).run(prog).problems if prog else ["the program was empty"])
         say(f"  {'plan' if r == 0 else f'repair {r}'}: {len(prog)} steps" +
             (f", problems: {'; '.join(problems[:2])}" if problems else ", checks out on the body"))
         if not problems or r == rounds:
