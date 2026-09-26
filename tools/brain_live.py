@@ -69,6 +69,9 @@ def main():
     os.makedirs(os.path.join(ROOT, "logs"), exist_ok=True)
     path = os.path.join(ROOT, "logs", f"brain_live_{label}.json")
     json.dump(r, open(path, "w"), indent=1)
+    r["json_format_followed"] = f"{sum(b.json_ok)}/{len(b.json_ok)}"
+    json.dump(r, open(path, "w"), indent=1)
+    print(f"model followed the JSON format in {r['json_format_followed']} calls (the rest were read leniently)")
     ok = [e for e in r["episodes"] if "success" in e]
     print(f"\n{sum(e['success'] for e in ok)}/{len(ok)} held with the real model; saved {path}")
 

@@ -61,3 +61,11 @@ def test_real_brain_through_the_loop(server):
 def test_bad_reply_raises():
     with pytest.raises(ValueError):
         brain._json("I cannot help with that")
+
+
+def test_lenient_reads_plain_words():
+    assert brain._lenient("choose", "power: whole hand wraps the object")[0]["family"] == "power"
+    assert brain._lenient("rank", "pick 3, then 1 and 0", 4)[0]["order"] == [3, 1, 0]
+    assert brain._lenient("verdict", "Yes, the object is still in the hand")[0]["held"] is True
+    assert brain._lenient("verdict", "No, it dropped")[0]["held"] is False
+    assert brain._lenient("choose", '{"family": "pinch", "why": "x"}') == ({"family": "pinch", "why": "x"}, True)

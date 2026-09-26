@@ -40,6 +40,29 @@ def _json(text):
     return json.loads(m.group(0))
 
 
+def _lenient(kind, text, n=0):
+    """Small models often answer in words instead of JSON (SmolVLM-500M: 'power: whole hand wraps the object').
+    Try JSON first, then read the words - a robot should not freeze because of formatting."""
+    try:
+        return _json(text), True
+    except (ValueError, json.JSONDecodeError):
+        pass
+    low = text.lower()
+    if kind == "choose":
+        hits = [(low.find(f), f) for f in primitives.FAMILIES if f in low]
+        fam = min(hits)[1] if hits else "power"
+        return {"family": fam, "why": text.strip()[:120]}, False
+    if kind == "rank":
+        order = []
+        for x in re.findall(r"\d+", text):
+            if int(x) < n and int(x) not in order:
+                order.append(int(x))
+        return {"order": order, "why": text.strip()[:120]}, False
+    held = (bool(re.search(r"\b(yes|held|holding|still in|true)\b", low))
+            and not re.search(r"\b(no|not|dropped|fell|false)\b", low))
+    return {"held": held, "cause": "" if held else text.strip()[:80]}, False
+
+
 class OpenAIBrain:
     def __init__(self, url=None, model=None, key=None, timeout=30):
         self.url = (url or os.environ.get("BRAIN_URL") or "https://api.cerebras.ai/v1").rstrip("/")
@@ -48,8 +71,9 @@ class OpenAIBrain:
         self.timeout = timeout
         self.last_latency = 0.0
         self.calls = []
+        self.json_ok = []          # per call: did the model follow the JSON format (reported by brain_live)
 
-    def _ask(self, text, image=None, max_tokens=300):
+    def _ask(self, text, image=None, max_tokens=300, kind="", n=0):
         content = [{"type": "text", "text": text}]
         if image is not None:
             content.append({"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," + _jpeg_b64(image)}})
@@ -65,13 +89,15 @@ class OpenAIBrain:
             out = json.loads(r.read())
         self.last_latency = time.perf_counter() - t0
         self.calls.append(self.last_latency)
-        return _json(out["choices"][0]["message"]["content"])
+        reply, ok = _lenient(kind, out["choices"][0]["message"]["content"], n)
+        self.json_ok.append(ok)
+        return reply
 
     def choose(self, goal, image, memory_text, obj_hint=""):
         return self._ask(
             f"Task: {goal}\nObject: {obj_hint or 'see image'}\nGrasp families:\n{primitives.describe()}\n\n"
             f"{memory_text}\n\nPick the grasp family most likely to hold. "
-            'Reply {"family": "<name>", "why": "<one short sentence>"}', image, 120)
+            'Reply {"family": "<name>", "why": "<one short sentence>"}', image, 120, "choose")
 
     def rank(self, goal, image, cands, memory_text):
         rows = "\n".join(f"{i}: {c['family']} s={c['s']:.2f} t={c['t']:.2f} | physics predicts: "
@@ -80,12 +106,14 @@ class OpenAIBrain:
         return self._ask(
             f"Task: {goal}\nCandidate grasps, each already simulated:\n{rows}\n\n{memory_text}\n\n"
             "Rank ALL candidates best first, using the image, the physics predictions and past attempts. "
-            'Reply {"order": [indices...], "why": "<one short sentence>"}', image, 60 + 8 * len(cands))
+            'Reply {"order": [indices...], "why": "<one short sentence>"}', image, 60 + 8 * len(cands), "rank",
+            len(cands))
 
     def verdict(self, goal, image):
         return self._ask(
             f"Task: {goal}\nThis image is right after the grasp, hand turned over. Is the object still in the hand? "
-            'Reply {"held": true|false, "cause": "<if dropped, the likely reason in under 12 words>"}', image, 60)
+            'Reply {"held": true|false, "cause": "<if dropped, the likely reason in under 12 words>"}', image, 60,
+            "verdict")
 
 
 # ---------------------------------------------------------------- no-network stand-in
