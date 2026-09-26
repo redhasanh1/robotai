@@ -15,6 +15,9 @@ doa:   for each of the 6 channels in turn, sweeps 1300 -> 1700 -> 1500 us slowly
 range: nudges one channel with the keyboard (a/d = -/+ 10 us, A/D = 50 us). Put the horn on, find where the
        finger is fully OPEN and fully CLOSED without the servo straining (listen: straining hums), press o / c
        to record each, q to save. Those become the firmware clamp - the servo can never be driven past them.
+       With tendons on: mark CLOSED a little SHORT of fully closed. The tendon model (results/tendon.md) has the
+       servo at 73% of stall at 90% closure and stalling ~0.2 rad (~12 deg, ~130 us) later, where the line starts
+       fighting the finger's end stops. If it hums at your CLOSED mark, back off 50-100 us.
 """
 import os
 import sys
@@ -89,6 +92,7 @@ def find_range(port, ch, side="right"):
     tr.write(protocol.slew(400))
     us = 1500
     print(f"channel {ch} ({s.name}): a/d = -/+10 us, A/D = -/+50 us, o = mark OPEN, c = mark CLOSED, q = save, x = abort")
+    print("  tip: mark CLOSED slightly before fully closed - if the servo hums there, back off 50-100 us")
     try:
         while True:
             tr.write(protocol.set_one(ch, us))
