@@ -50,8 +50,12 @@ On test hands with physics we never designed for, this is **6 to 20 times more a
 | Finger position estimate vs camera alone | ~16 deg error | 1-3 deg |
 | NVIDIA GPU sim on the laptop's GTX 1660 Ti | - | 1024 grasps checked in 1.9 s |
 
+| Habits: stop asking the AI once a grasp keeps working | 3.0 AI calls per task | 1.0 AI call, same 100% success |
+| Brain's choice of grasp type vs a random one (full system) | 85% (random) | 98% (brain) |
+
 Brain speed per decision:
-- **Measured:** small AI on the laptop (SmolVLM-500M): ~14 s
+- **Measured:** Qwen2.5-VL-3B on the laptop: ~25 s (follows instructions 48/48); SmolVLM-500M: ~14 s (4/48)
+
 - **Estimated:** rented GPU ~3 s, Cerebras ~0.6 s (to be measured, needs the API key)
 
 Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
@@ -60,12 +64,21 @@ Full tables: `results/bench.md`, `results/estimator_and_gpu.md`.
 
 Open the control panel: `.venv\Scripts\pythonw tools\panel.py`
 
-- **Tell the robot**: type "pick up the orange" → it plans, thinks, and the sim hand does it on screen.
+- **Speak or type**: "pick up the ball", "wave", "box" → the full InMoov does it on screen. "walk the dog" →
+  it tells you which skill is missing (navigate). Speech-to-text is Whisper, on the laptop.
   "clean the dishes" → it plans the steps and tells you which skills still have to be built.
 - **Sim hand**: grabs the ball, can, block and bar once each, in slow motion.
 - **Full robot**: the whole InMoov upper body (57 joints, from the same model as the website). The arm reaches, the
   wrist turns and the hand closes, or open it with sliders and move every joint yourself.
 - **STOP ALL**: kills every robot program that's running. To interrupt Claude, press Esc in the terminal.
+
+## Learning without big training
+
+1. **Memory**: every attempt, and why it failed, goes into the AI's prompt next time.
+2. **Habits**: once a grasp keeps working on an object, the robot stops asking the AI (`hand/habit.py`).
+   One failure and it asks again.
+3. **Recording**: every real attempt is saved (`logs/episodes`) and converts to a LeRobot dataset
+   (`tools/export_lerobot.py`), ready for GR00T / SmolVLA post-training on a rented GPU once the arm exists.
 
 ## What runs where
 
