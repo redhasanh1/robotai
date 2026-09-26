@@ -58,7 +58,15 @@ def main():
     m = build_model(extra=home.scene_xml(), mobile=True)
     say(f'task: "{command}"')
     prog, unknown = H.plan(command)
-    said = ""
+    said, seen = "", {}
+    if a.showcase:            # someone spills in the living room; after the chores the robot checks every counter
+        from hand import perceive
+        eyes = perceive.Eyes(m).learn()
+        perceive.set_messes(m, {"living room"})
+        seen = eyes.survey()
+        for room, what in seen.items():
+            say(f"  counter camera, {room}: {what} - wiping it after the chores")
+        prog += [{"do": "wipe", "room": r} for r in seen]
     if unknown:
         brain, url = get_brain()
         rest = ", ".join(unknown)
@@ -78,7 +86,7 @@ def main():
     if not prog:
         say("robot: I don't know how to do that yet.")
         return
-    body = home.HomeBody(m).run(prog)
+    body = home.HomeBody(m, seen).run(prog)
     words = ([said] if said else []) + body.said
     say("robot: " + ("; ".join(words) or "done.") +
         (f"  (couldn't do: {'; '.join(body.problems[:3])})" if body.problems else "") +

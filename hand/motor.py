@@ -477,5 +477,9 @@ def play(m, d, frames, on_frame):
             d.mocap_pos[moc(ev[1])] = ev[2]
         elif ev and ev[0] == "fly" and ev[5] is None:
             d.mocap_pos[moc(ev[1])] = (ev[2][0] + ev[3][0] * ev[4], ev[2][1] + ev[3][1] * ev[4], TABLE_Z + OBJ[ev[1]][3])
+        elif ev and ev[0] == "clean":                  # a wiped stain's decal goes away (hand/perceive.py)
+            g = mujoco.mj_name2id(m, mujoco.mjtObj.mjOBJ_GEOM, ev[1])
+            if g >= 0:
+                m.geom_pos[g][2] = -1.0
         mujoco.mj_forward(m, d)
         on_frame()
