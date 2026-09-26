@@ -12,7 +12,11 @@ from hand.inmoov_sim import build_model  # noqa: E402
 
 
 def main():
-    m = build_model(meshes=False, extra=home.scene_xml(), mobile=True)
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--skeleton", action="store_true", help="capsule arms instead of the InMoov meshes (what tests use)")
+    a = ap.parse_args()
+    m = build_model(meshes=not a.skeleton, extra=home.scene_xml(), mobile=True)
     n = planner = over2 = over5 = 0
     kinds = collections.Counter()
     for p, _ in H.PROMPTS:
@@ -31,7 +35,7 @@ def main():
              f"| {n} | {planner} | {over2} | {over5} |", "", "| hand | touched | during | deeper than 5 mm | frames |",
              "|---|---|---|---|---|"]
     lines += [f"| {r} | {t} | {d} | {'yes' if deep else 'no'} | {c} |" for (r, t, d, deep), c in kinds.most_common(12)]
-    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results", "collisions_now.md")
+    out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "results", "collisions_now_skeleton.md" if a.skeleton else "collisions_now.md")
     with open(out, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
     print("\n".join(lines))

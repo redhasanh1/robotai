@@ -19,7 +19,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from hand import brain as brain_mod, home, home_tasks as H, motor  # noqa: E402
+from hand import ask as ask_mod, brain as brain_mod, home, home_tasks as H, motor  # noqa: E402
 from hand.inmoov_sim import build_model  # noqa: E402
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -57,7 +57,15 @@ def main():
                                            else " ".join(a.command))
     m = build_model(extra=home.scene_xml(), mobile=True)
     say(f'task: "{command}"')
-    prog, unknown = H.plan(command)
+    # one good question instead of a guess, if a fact is missing and someone is at the keyboard; answers are kept
+    know = ask_mod.Knowledge(os.path.join(ROOT, "logs", "house_knowledge.json"))
+
+    def ask_person(q):
+        say(f"robot: {q['text']}")
+        return input("you: ") if sys.stdin and sys.stdin.isatty() else ""
+    prog, unknown, asked = ask_mod.plan(command, know, ask=ask_person if not a.showcase else None)
+    if asked and ask_mod.question(command, know) is not None:
+        say("robot: no answer - going with my best guess this time (I'll ask again next time)")
     said, seen = "", {}
     if a.showcase:            # someone spills in the living room; after the chores the robot checks every counter
         from hand import perceive

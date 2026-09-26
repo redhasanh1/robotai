@@ -1,9 +1,6 @@
 | tasks | planner found a problem | any contact > 2 mm | any contact > 5 mm |
 |---|---|---|---|
-| 47 | 0 | 6 | 1 |
+| 47 | 0 | 0 | 0 |
 
 | hand | touched | during | deeper than 5 mm | frames |
 |---|---|---|---|---|
-| leftHand | obj_white_shirt | put_in | no | 5 |
-| leftHand | obj_remote | give | yes | 1 |
-| leftHand | obj_remote | give | no | 1 |

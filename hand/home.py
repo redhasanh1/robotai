@@ -171,31 +171,41 @@ class HomeBody(motor.Body):
         """IK to xyz, then make sure the arm isn't inside anything (hand/collide.py): raise the hand 1 cm at a time
         until it is clear. Grasping (grasp=obj): the counter can be cleared by raising, but another object in the
         way can't - the hand would miss what it's reaching for - so that is reported by name."""
-        q = None
-        for dz in RAISES:
-            q2, err = reach.solve(self.m, np.asarray(xyz) + (0, 0, dz), side=side, base=self.base)
-            if q2 is None:
-                if dz == 0:
-                    self.problems.append(f"{why or 'move_hand'}: {side} hand cannot reach that from the {self.room} "
-                                         f"({err * 100:.0f} cm short)")
-                    return False
-                break
-            q, hits = q2, self._hits(side, q2, grasp)
-            in_way = [h for h in hits if h[1].startswith("obj_")]
-            if grasp and in_way:
-                self.problems.append(f"{why or 'pick ' + grasp}: the {in_way[0][1][4:].replace('_', ' ')} is in the "
-                                     f"way of the {grasp}")
-                break
-            if not hits:
-                break
-        else:
-            thing = hits[0][1].replace("counter_", "").replace("cont_", "").replace("_", " ")
+        r = self._solve_clear(side, xyz, grasp)
+        q, dz = r["q"], r["dz"]
+        if r["status"] == "unreachable":
+            self.problems.append(f"{why or 'move_hand'}: {side} hand cannot reach that from the {self.room} "
+                                 f"({r['err'] * 100:.0f} cm short)")
+            return False
+        if r["status"] == "in_way":
+            self.problems.append(f"{why or 'pick ' + grasp}: the {r['in_way'][0][1][4:].replace('_', ' ')} is in the "
+                                 f"way of the {grasp}")
+        elif r["status"] == "blocked":
+            thing = r["hits"][0][1].replace("counter_", "").replace("cont_", "").replace("_", " ")
             self.problems.append(f"{why or 'move_hand'}: the {side} arm would hit the {thing}")
         self._detour(side, q, grasp, np.asarray(xyz) + (0, 0, dz))
         need = max(abs(q[n] - self.arm_q[side][n]) for n in q) / motor.ARM_SPEED
         self.arm_q[side] = q
         self.frames.append((max(seconds or 0.0, need, 0.3), self._pose(), event))
         return True
+
+    def _solve_clear(self, side, xyz, grasp=None):
+        """IK to xyz, lifted 1 cm at a time until the arm is clear of the house. Pure - nothing is committed, so the
+        same answer serves move() and the look-ahead in _blockers(). status: ok / unreachable / in_way / blocked."""
+        q, dz, hits = None, 0.0, []
+        for dz in RAISES:
+            q2, err = reach.solve(self.m, np.asarray(xyz) + (0, 0, dz), side=side, base=self.base)
+            if q2 is None:
+                if q is None:
+                    return {"status": "unreachable", "err": err, "q": None, "dz": 0.0, "hits": [], "in_way": []}
+                break
+            q, hits = q2, self._hits(side, q2, grasp)
+            in_way = [h for h in hits if h[1].startswith("obj_")]
+            if grasp and in_way:
+                return {"status": "in_way", "q": q, "dz": dz, "hits": hits, "in_way": in_way}
+            if not hits:
+                return {"status": "ok", "q": q, "dz": dz, "hits": [], "in_way": []}
+        return {"status": "blocked", "q": q, "dz": dz, "hits": hits, "in_way": []}
 
     def _path_hits(self, side, q0, q1, grasp=None):
         """Hits partway along the joint-space path (playback interpolates joints; the ends alone can be clear)."""
@@ -341,7 +351,7 @@ class HomeBody(motor.Body):
                 self.said.append(f"moving the {b} out of the way")
                 self._clearing = True
                 try:
-                    self.put_on(b, room)
+                    self.put_on(b, room, away_from=p)
                 finally:
                     self._clearing = False
                 if self.held[side]:
@@ -358,21 +368,15 @@ class HomeBody(motor.Body):
     def _blockers(self, o, side, xyz):
         """Other objects the hand would go through coming down onto o at xyz - above it, the way down, the grip
         (checked on the body, nothing moved)."""
-        q = None
-        for dz in RAISES:                      # the height move() will really use: lifted until the counter clears
-            q2, _ = reach.solve(self.m, np.asarray(xyz) + (0, 0, dz), side=side, base=self.base)
-            if q2 is None:
-                break
-            q = q2
-            if not [h for h in self._hits(side, q2, grasp=o) if not h[1].startswith("obj_")]:
-                xyz = np.asarray(xyz) + (0, 0, dz)
-                break
-        above, _ = reach.solve(self.m, np.asarray(xyz) + (0, 0, 0.08), side=side, base=self.base)
+        # exactly the two moves pick() makes - the approach (8 cm higher) and the grip - via the same solver as move()
+        down = self._solve_clear(side, xyz, grasp=o)
+        up = self._solve_clear(side, np.asarray(xyz) + (0, 0, 0.08), grasp=o)
+        q, above = down["q"], up["q"]
         if q is None:
             return []
-        hits = self._hits(side, q, grasp=o)
+        hits = down["in_way"] + up["in_way"] + self._hits(side, q, grasp=o)
         if above is not None:
-            hits += self._hits(side, above, grasp=o) + self._path_hits(side, above, q, grasp=o)
+            hits += self._path_hits(side, above, q, grasp=o)
         open_, self.grip[side] = self.grip[side], 0.8          # curling fingers sweep sideways into a neighbour
         try:
             hits += self._hits(side, q, grasp=o)
@@ -468,7 +472,8 @@ class HomeBody(motor.Body):
         if self._drop_at(o, (xy[0], xy[1], z), ("in", into), side):
             self.filled[into] += 1
 
-    def put_on(self, o, room):
+    def put_on(self, o, room, away_from=None):
+        """away_from (xy): clearing an obstacle - use the free spot farthest from what the hand is going for."""
         room = {"living": "living room", "table": "living room", "counter": "kitchen"}.get(room, room)
         if room not in ROOMS or room == "you":
             return self.problems.append(f"put_on: no counter in '{room}'")
@@ -477,7 +482,9 @@ class HomeBody(motor.Body):
             return
         self.go(room)
         side = next((s for s, v in self.held.items() if v == o), side)
-        for loc in FREE_SPOTS:
+        spots = FREE_SPOTS if away_from is None else \
+            sorted(FREE_SPOTS, key=lambda s: -np.linalg.norm(to_world(room, s) - np.asarray(away_from)[:2]))
+        for loc in spots:
             xy = to_world(room, loc)
             clear_objs = all(np.linalg.norm(self.pos[k][:2] - xy) > 0.07 for k in self.pos if k != o and
                              self.where[k][0] != "held")
